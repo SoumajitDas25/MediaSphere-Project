@@ -32,4 +32,52 @@ const fileUpload = async (localFilePath,asset_folder)=>{
     }
 }
 
-export {fileUpload};
+const deleteFile = async (fileUrl)=>
+{
+    try
+    { 
+        if(fileUrl)
+        {
+            //extract the file public id from the url
+            const publicId = fileUrl.substring(fileUrl.lastIndexOf('/')+1,fileUrl.lastIndexOf('.'));
+                
+            //delete the file from cloudinary
+            const response = await cloudinary.api.delete_resources(
+                [publicId], 
+                { type: 'upload', resource_type: 'image' }
+            )
+            return response;
+        }
+        return null;
+    }
+    catch(error)
+    {
+        return null;
+    }
+}
+    
+const deleteVideoFile = async (fileUrl)=>
+{
+    try
+    { 
+        if(fileUrl)
+        {
+            //extract the file public id from the url
+            const publicId = fileUrl.substring(fileUrl.lastIndexOf('/')+1,fileUrl.lastIndexOf('.'));
+                
+            //delete the file from cloudinary
+            const response = await cloudinary.api.delete_resources(
+                [publicId], 
+                { type: 'upload', resource_type: 'video' }
+            )
+            return response;
+        }
+        return null;
+    }
+    catch(error)
+    {
+        return null;
+    }
+}
+
+export {fileUpload,deleteFile,deleteVideoFile};

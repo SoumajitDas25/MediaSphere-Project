@@ -2,7 +2,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import {User} from '../models/user.model.js'
-import {fileUpload} from '../utils/cloudinary.js'
+import {fileUpload,deleteFile,deleteVideoFile} from '../utils/cloudinary.js'
 import jwt from "jsonwebtoken";
 
 const cookieOptions={
@@ -269,10 +269,168 @@ const changeCurrentPassword = asyncHandler(async (req,res)=>{
 
 })
 
+const getCurrentUser = asyncHandler(async (req,res)=>{
+
+    //return user doc from req.user as response
+    return res.status(200)
+    .json(
+        new ApiResponse(200,req.user,"Current User fetched Successfully")
+    );
+})
+
+const updateAccountDetails = asyncHandler(async (req,res)=>{
+
+    //fetch user details(to be updated) from req body
+    const {fullName,email} = req.body;
+    if(!fullName || !email)
+    {
+        throw new ApiError(400,"All fields are required");
+    }
+    //find and update user doc by id
+    const user =await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                fullName,
+                email
+            }
+        },
+        {new: true}
+    ).select("-password -refreshToken");
+    if(!user)
+    {
+        throw new ApiError(500,"Something went wrong while updating user details");
+    }
+    
+    res.status(200)
+    .json(
+        new ApiResponse(200,user,"Account details Updated Successfully")
+    );
+})
+
+const updateUserAvatar = asyncHandler(async (req,res)=>{
+
+    //fetch user avatar from req.file
+    let avatarLocalPath;
+    if(req.file && req.file.path)
+    avatarLocalPath=req.file.path;
+    if(!avatarLocalPath)
+    {
+        throw new ApiError(400,"Avatar file is missing");
+    }
+
+    //upload the new avatar file to cloudinary
+    const avatar = await fileUpload(avatarLocalPath,"users");       
+    if(!avatar.url) //upload unsuccessful 
+    {
+        throw new ApiError(500,"Avatar file upload failed");
+    }
+
+    //find & update the user doc by id
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        },
+        {new: true}
+    ).select("-password -refreshToken");
+    if(!user)
+    {
+        throw new ApiError(500,"Something went wrong while updating User Avatar");
+    }
+
+    //delete the old avatar from cloudinary
+    const response = await deleteFile(req.user?.avatar);
+    let isOldAvatarDeleted;
+    if(response)
+    isOldAvatarDeleted=true;
+    else
+    isOldAvatarDeleted=false;
+
+    //return the user doc as response
+    return res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                data:user,
+                isOldAvatarDeleted
+            },
+            "User Avatar updated Successfully"
+        )
+    );
+})
+
+const updateUserCoverImage = asyncHandler(async (req,res)=>{
+
+    //fetch user coverImage from req.file
+    let coverImageLocalPath;
+    if(req.file && req.file.path)
+    coverImageLocalPath=req.file.path;
+    if(!coverImageLocalPath)
+    {
+        throw new ApiError(400,"Cover Image file is missing");
+    }
+
+    //upload the new coverImage file to cloudinary
+    const coverImage = await fileUpload(coverImageLocalPath,"users");    
+    if(!coverImage.url) //upload unsuccessful 
+    {
+        throw new ApiError(500,"Cover Image file upload failed");
+    }
+
+    //find & update the user doc by id
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                coverImage: coverImage.url
+            }
+        },
+        {new: true}
+    ).select("-password -refreshToken");
+    if(!user)
+    {
+        throw new ApiError(500,"Something went wrong while updating Cover Image");
+    }
+
+    //delete the old coverImage from cloudinary
+    let isOldCoverImageDeleted;
+    if(req.user.coverImage!="")
+    {
+    const response = await deleteFile(req.user.coverImage);
+    if(response)
+    isOldCoverImageDeleted=true;
+    else
+    isOldCoverImageDeleted=false;
+    }
+    else
+    isOldCoverImageDeleted="No previous Cover Image";
+
+    //return the user doc as response
+    return res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                data:user,
+                isOldCoverImageDeleted
+            },
+            "Cover Image updated Successfully"
+        )
+    );
+})
+
 export {
     registerUser,
     loginUser,
     logoutUser,
     refreshAccessToken,
-    changeCurrentPassword
+    changeCurrentPassword,
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvatar,
+    updateUserCoverImage
 }
