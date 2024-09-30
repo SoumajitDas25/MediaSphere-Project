@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* *{
+    border: 1px solid white;
+} */
+body{
+    min-height: 100%;
+    overflow-x: hidden;
+}
