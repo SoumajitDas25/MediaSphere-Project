@@ -40,7 +40,7 @@ const deleteFile = async (fileUrl)=>
         {
             //extract the file public id from the url
             const publicId = fileUrl.substring(fileUrl.lastIndexOf('/')+1,fileUrl.lastIndexOf('.'));
-                
+            
             //delete the file from cloudinary
             const response = await cloudinary.api.delete_resources(
                 [publicId], 
@@ -55,7 +55,7 @@ const deleteFile = async (fileUrl)=>
         return null;
     }
 }
-    
+
 const deleteVideoFile = async (fileUrl)=>
 {
     try
@@ -64,7 +64,7 @@ const deleteVideoFile = async (fileUrl)=>
         {
             //extract the file public id from the url
             const publicId = fileUrl.substring(fileUrl.lastIndexOf('/')+1,fileUrl.lastIndexOf('.'));
-                
+            
             //delete the file from cloudinary
             const response = await cloudinary.api.delete_resources(
                 [publicId], 

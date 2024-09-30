@@ -2,13 +2,13 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import {User} from '../models/user.model.js'
-import {fileUpload,deleteFile,deleteVideoFile} from '../utils/cloudinary.js'
-import jwt from "jsonwebtoken";
+import {fileUpload,deleteFile} from '../utils/cloudinary.js'
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 
 const cookieOptions={
     httpOnly:true,
-    secure:true  //this will not allow frontend to modify the cookies(only server can modify it).
+    secure: true,  //this will not allow frontend to modify the cookies(only server can modify it).
 };
 
 const generateAccessAndRefreshToken = async (userId)=>{
@@ -35,10 +35,10 @@ const generateAccessAndRefreshToken = async (userId)=>{
 const registerUser = asyncHandler(async (req,res)=>{
 
     // fetch user details from req
-    const {username,fullName,email,password} = req.body;
+    const {username,channelName,email,password} = req.body;
 
     //validation - not empty
-    if([username,fullName,email,password].some(field=>field?.trim()===""))
+    if([username,channelName,email,password].some(field=>field?.trim()===""))
         throw new ApiError(400,"All fields are required");
 
     //check if user already exists(check by username or email)
@@ -48,7 +48,7 @@ const registerUser = asyncHandler(async (req,res)=>{
         }
     )
     if(existedUser)
-        throw new ApiError(409,"User already Exists");
+        throw new ApiError(409,"User Already Exists");
 
     //upload files to cloudinary
     let avatarLocalPath;
@@ -80,15 +80,15 @@ const registerUser = asyncHandler(async (req,res)=>{
     // create a user document(object)- create entry in db
     const user = await User.create({
         username: username.toLowerCase(),
-        fullName: fullName,
+        channelName: channelName,
         email: email.toLowerCase(),
         avatar:avatar.url,
         coverImage:coverImage?.url || "",
         password
-    })
+    });
 
-    //check & retrieve the created user document and remove the password & refresh token field
-    const createdUser = await User.findById(user._id).select("-password -refreshToken");
+    //check & retrieve the created user document and include only these fields
+    const createdUser = await User.findById(user._id).select("username channelName email avatar coverImage");
     if(!createdUser)
     {
         throw new ApiError(500,"Something went wrong while registering user");
@@ -126,10 +126,8 @@ const loginUser = asyncHandler(async (req,res)=>{
     //generate access & refresh token
     const {refreshToken,accessToken} = await generateAccessAndRefreshToken(user._id);
 
-    //remove unwanted fields from currrent user document
-    const loggedInUser = await User.findById(user._id).select(
-        "-password -refreshToken"
-    );
+    //get the currrent user document & include only these fields
+    const loggedInUser = await User.findById(user._id).select("username channelName email avatar coverImage");
 
     //send access & refresh tokens as cookies along with the response
     return res.status(200)
@@ -257,11 +255,7 @@ const changeCurrentPassword = asyncHandler(async (req,res)=>{
     user.password = newPassword;
 
     //save the user doc
-    const updatedUser = await user.save({validateBeforeSave:false});
-    if(!updatedUser)
-    {
-        throw new ApiError(500,"Something went wrong while updating User document");
-    }
+    user.save({validateBeforeSave:false});
 
     res.status(200)
     .json(
@@ -273,9 +267,10 @@ const changeCurrentPassword = asyncHandler(async (req,res)=>{
 const getCurrentUser = asyncHandler(async (req,res)=>{
 
     //return user doc from req.user as response
+    const user = req.user;
     return res.status(200)
     .json(
-        new ApiResponse(200,req.user,"Current User fetched Successfully")
+        new ApiResponse(200,user,"Current User fetched Successfully")
     );
 })
 
@@ -585,4 +580,4 @@ export {
     updateUserCoverImage,
     getUserChannelProfile,
     getWatchHistory
-}
+};

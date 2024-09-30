@@ -11,7 +11,7 @@ const userSchema = new Schema({
         trim: true,
         index: true
     },
-    fullName: {
+    channelName: {
         type: String,
         required: true,
         trim: true,

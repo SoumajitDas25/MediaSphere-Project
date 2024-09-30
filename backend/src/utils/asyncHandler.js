@@ -14,6 +14,7 @@ const asyncHandler = (requestHandler) => async (req, res, next) => {
             res.status(500).json(
                 {
                     error: SERVER_ERROR_MESSAGE,
+                    statusCode: 500,
                     success: false
                 }
             );
@@ -49,6 +50,7 @@ const asyncHandler = (requestHandler) => async (req, res, next) => {
             res.status(error.statusCode).json(
                 {
                     error: SERVER_ERROR_MESSAGE,
+                    statusCode: error.statusCode,
                     success: false
                 }
             );

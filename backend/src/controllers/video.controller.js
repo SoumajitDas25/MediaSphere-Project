@@ -13,7 +13,6 @@ import {fileUpload,deleteFile,deleteVideoFile} from "../utils/cloudinary.js"
 
 const assetFolderName ="videos";
 
-//incomplete
 const getAllVideos = asyncHandler(async (req, res) => {
 
     let page,limit,query,sortBy,sortType,userId;
@@ -26,7 +25,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         sortType = String(req.query.sortType);
         userId = String(req.query.userId);
     }
-    console.log(page,limit,query,sortBy,sortType,userId);
+    // console.log(page,limit,query,sortBy,sortType,userId);
     if(!(page && limit && query && sortBy && sortType && userId))
     {
         throw new ApiError(400,"Request Queries are required");
@@ -173,7 +172,7 @@ const getVideoById = asyncHandler(async (req, res) => {
     const video = await Video.findById(videoId);
     if(!video)
     {
-        throw new ApiError(500,"Something went wrong while fetching video document");
+        throw new ApiError(400,"Incorrect Tweet Id - Tweet does not exist");
     }
 
     //check if user has already viewed this video or not
