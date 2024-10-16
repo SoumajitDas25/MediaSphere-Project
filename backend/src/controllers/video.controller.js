@@ -13,6 +13,7 @@ import {fileUpload,deleteFile,deleteVideoFile} from "../utils/cloudinary.js"
 
 const assetFolderName ="videos";
 
+//TODO
 const getAllVideos = asyncHandler(async (req, res) => {
 
     let page,limit,query,sortBy,sortType,userId;
@@ -100,6 +101,107 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 "Videos Fetched Successfully"
             )
         );
+})
+
+const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
+
+    //fetch page & limit from req query
+    const {page = 1, limit = 9} = req.query;
+
+    //get userId from req params
+    const {userId} = req.params;
+    if(!isValidObjectId(userId))
+    {
+        throw new ApiError(400,"Invalid User Id");
+    }
+
+    //check if the user exists or not
+    const user = await User.findById(userId);
+    if(!user)
+    {
+        throw new ApiError(400,"Incorrect User Id - User does not exist")
+    }
+
+    //get all vidoes for the user
+    const totalVideos = await Video.find(
+        {
+            owner: userId
+        }
+    );
+    if(!totalVideos)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total Videos");
+    }
+
+    //check if page no. exceeds max page no.
+    let totalPages = Math.ceil(totalVideos.length / Number(limit));
+    if(totalPages < Number(page))
+    {
+        throw new ApiError(400,"Page Number exceeds Max Page Number");
+    }
+
+    const paginatedUserVideos = await Video.aggregate([
+        {
+            $match:{ //get the user videos
+                owner: new mongoose.Types.ObjectId(String(userId))
+            }
+        },
+        {         
+            $sort: { //sort the documents with the most recent to least recent
+                createdAt: 1 
+            }
+        },
+        {
+            //No. of docs to skip
+            $skip: (Number(page) - 1) * Number(limit)
+        },
+        {   //No. of docs to be fetched
+            $limit: Number(limit)
+        },
+        {
+            $addFields: { //add the owner info to each document
+                owner: {
+                    _id: user._id,
+                    username: user.username,
+                    channelName: user.channelName,
+                    avatar: user.avatar
+                }
+            }
+        },
+        {
+            $project: {
+                thumbnail: 1,
+                title: 1,
+                duration: 1,
+                owner: 1,
+                viewsCount: 1,
+                // likesCount: 1,
+                // commentsCount: 1,
+                createdAt: 1,
+                updatedAt: 1
+            }
+        }
+    ]);
+
+    if(!paginatedUserVideos)
+    {
+        throw new ApiError(500,"Something went wrong while fetching User Video documents")
+    }
+    
+    //send the paginatedVideos[] as response
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                totalVideos: totalVideos.length,
+                currentPage: Number(page),
+                totalPages,
+                paginatedContent:paginatedUserVideos,
+            },
+            "Paginated User Videos fetched Successfully"
+        )
+    );
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -437,6 +539,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
 export {
     getAllVideos,
+    getPaginatedUserVideos,
     publishAVideo,
     getVideoById,
     updateVideo,

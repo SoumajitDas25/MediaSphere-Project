@@ -523,7 +523,7 @@ const getWatchHistory = asyncHandler(async (req,res)=>{
                             pipeline: [
                                 {
                                     $project: { //return only these fields
-                                        fullName: 1,
+                                        channelName: 1,
                                         username: 1,
                                         avatar: 1,
                                     }

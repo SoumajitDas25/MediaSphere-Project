@@ -14,17 +14,6 @@ export const signupThunk = createAsyncThunk(
     async (data,{ rejectWithValue })=>{
         try
         {
-            // const response = await axios.post(
-            //     'http://localhost:3000/api/v1/users/signup',
-            //     data,
-            //     {
-            //         headers: {
-            //             'Content-Type': 'multipart/form-data'
-            //         },
-            //         withCredentials: true,
-            //         validateStatus: ()=>true //allow all statusCode
-            //     }
-            // );
             const response = await signup(data);
             if (response.status < 200 || response.status >= 300) 
             {
@@ -45,12 +34,6 @@ export const getCurrentUserThunk = createAsyncThunk(
     async ({},{rejectWithValue})=>{
         try
         {
-            // const response = await axios.get(
-            //     'http://localhost:3000/api/v1/users/current-user',
-            //     {
-            //         withCredentials: true
-            //     }
-            // );
             const response = await getUser();
             if (response.status < 200 || response.status >= 300) 
             {

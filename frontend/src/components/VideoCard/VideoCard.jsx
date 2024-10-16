@@ -1,5 +1,6 @@
 import React from 'react'
 import { NoAvatarIcon } from '../../assets/icons';
+import { useNavigate } from 'react-router-dom';
 
 const VideoCard = (
     {
@@ -9,13 +10,15 @@ const VideoCard = (
         viewsCount=0,
         owner,
         duration='0:00',
-        createdAt="",
+        createdAt=""
     }
 ) => {
 
+    const navigate = useNavigate();
+
     // Function to calculate time difference
-    function timeSince(date) 
-    {
+    const timeSince = (date)=> {
+
         const isoDate = new Date(date.toISOString());
         const now = new Date();
 
@@ -47,9 +50,42 @@ const VideoCard = (
         const years = Math.floor(secondsPast / 31536000);
         return `${years} ${years==1?'year':'years'} ago`;
     }
+
+    //function to compute duration in hh:mm:ss format
+    const computeDuration = (duration)=> {
+
+        if (duration < 60) 
+        {
+            if(duration<10)
+                duration = '0'+String(duration);
+            return `00:${duration}`;
+        }
+        if (duration < 3600) 
+        {
+            let minutes = Math.floor(duration / 60);
+            let seconds = duration % 60;
+            if(seconds<10)
+                seconds = '0'+String(seconds);
+            return `${minutes}:${seconds}`;
+        }
+        else
+        {
+            let hours = Math.floor(duration / 3600);
+            let minutes = Math.floor(duration % 3600);
+            if(minutes < 10)
+                minutes = '0'+String(minutes);
+            let seconds = minutes % 60;
+            if(seconds < 10)
+                seconds = '0'+String(seconds);
+            return `${hours}:${minutes}:${seconds}`;
+        }
+    }
+
     
   return (
-    <div className="bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light grid grid-flow-col grid-cols-5 grid-rows-5 rounded-lg overflow-hidden w-full">
+    <div 
+    className="bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light grid grid-flow-col grid-cols-5 grid-rows-5 rounded-lg overflow-hidden w-full" 
+    onClick={()=>navigate('/video')}>
 
         {/* Video Thumbnail */}
         <div className="col-span-full row-span-3 relative overflow-hidden flex justify-center">
@@ -58,7 +94,7 @@ const VideoCard = (
             alt="Video Thumbnail" 
             className="rounded-lg z-5"
             />
-            <div className="bg-black text-white absolute z-10 right-2 bottom-[5%] rounded-md px-2 text-[3.5vw] sm:text-[0.9rem]">{duration}</div>
+            <div className="bg-black text-white absolute z-10 right-2 bottom-[5%] rounded-md px-2 text-[3.5vw] sm:text-[0.9rem]">{computeDuration(duration)}</div>
         </div>
 
         {/* Video Info*/}
@@ -80,13 +116,13 @@ const VideoCard = (
                   
             </div>
             {/* info */}
-            <div className="col-span-10 grid grid-rows-2 gap-2">
+            <div className="col-span-10 grid grid-rows-2 gap-1 lg:gap-2">
                 {/* title */}
-                <h3 className="row-span-1 font-semibold text-[4vw] sm:text-[1rem] lg:text-[0.75rem]  xl:text-[1rem] overflow-hidden">
+                <h3 className="row-span-1 font-semibold text-[4vw] sm:text-[1rem] md:text-[0.85rem] lg:text-[0.75rem]  xl:text-[1rem] overflow-hidden">
                     {title}
                 </h3>
 
-                <div className="row-span-1 text-light-font_color_dark dark:text-dark-font_color_dark text-[3.5vw] xsm:text-[3vw] sm:text-[0.75rem] lg:text-[0.6rem] xl:text-[0.75rem] flex flex-col justify-center">
+                <div className="row-span-1 text-light-font_color_dark dark:text-dark-font_color_dark text-[3.75vw] sm:text-[0.85rem] md:text-[0.7rem] lg:text-[0.65rem] xl:text-[0.85rem] flex flex-col justify-center">
                     {/* Channel Name */}
                     <h3>
                         {owner && owner.channelName}

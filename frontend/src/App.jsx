@@ -57,7 +57,10 @@ function App() {
     <>
       <Layout>
         <div className='flex-1 flex flex-col'>
-          {loading? <Loader hideBackground={true}/>:<Outlet/>}
+          {
+          loading? 
+          <Loader hideBackground={true}/>:<Outlet/>
+          }
           {/* {
             (isNetworkError==='Network Error') && <NetworkError/> 
           } */}

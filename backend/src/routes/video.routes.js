@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import {
-    deleteVideo,
     getAllVideos,
+    getPaginatedUserVideos,
     getVideoById,
     publishAVideo,
     togglePublishStatus,
     updateVideo,
+    deleteVideo,
 } from "../controllers/video.controller.js";
 import {verifyJWT} from "../middlewares/auth.middleware.js";
 import {upload} from "../middlewares/multer.middleware.js";
@@ -36,6 +37,8 @@ router
     .get(getVideoById)
     .delete(deleteVideo)
     .patch(upload.single("thumbnail"), updateVideo);
+
+router.route("/user/:userId").get(getPaginatedUserVideos);
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 

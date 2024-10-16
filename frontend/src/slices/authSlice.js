@@ -18,14 +18,6 @@ export const verifyAndGetUserThunk = createAsyncThunk(
     async (_,{rejectWithValue})=>{
         try
         {
-            // const response1 = await axios.get(
-            //     'http://localhost:3000/api/v1/users/current-user',
-            //     // 'https://nj9lkx6f-3000.inc1.devtunnels.ms/api/v1/users/current-user',
-            //     {
-            //         withCredentials: true,
-            //         validateStatus: ()=>true //allow all statusCode
-            //     }
-            // );
             const response1 = await getUser();
             console.log(response1.status);
             if(response1.status === 404)
@@ -36,13 +28,7 @@ export const verifyAndGetUserThunk = createAsyncThunk(
             else if(response1.status < 200 || response1.status >= 300) 
             { // when user has tokens but access token is invalid or expired, then refresh the token
                 console.log('Trying to refresh Tokens');
-                // const response2 = await axios.post(
-                //     'http://localhost:3000/api/v1/users/refresh-token',
-                //     {
-                //         withCredentials: true,
-                //         validateStatus: ()=>true //allow all statusCode
-                //     }
-                // );
+
                 const response2 = await refreshToken();
                 if(response2.status < 200 || response2.status >= 300) 
                 { //when user has invalid or expired refresh token too
@@ -52,13 +38,7 @@ export const verifyAndGetUserThunk = createAsyncThunk(
                 else
                 { //when tokens are refreshed, then get the user
                     console.log('Tokens Refreshed');
-                    // const response3 = await axios.get(
-                    //     'http://localhost:3000/api/v1/users/current-user',
-                    //     {
-                    //         withCredentials: true,
-                    //         validateStatus: ()=>true //allow all statusCode
-                    //     }
-                    // );
+                   
                     const response3 = await getUser();
                     if(response3.status < 200 || response3.status >= 300) 
                     { //when something gets wrong while getting the user
@@ -90,15 +70,6 @@ export const loginThunk = createAsyncThunk(
     async (data,{ rejectWithValue })=>{
         try
         {
-            // const response = await axios.post(
-            //     'http://localhost:3000/api/v1/users/login',
-            //     // 'https://nj9lkx6f-3000.inc1.devtunnels.ms/api/v1/users/login',
-            //     data,
-            //     {
-            //         withCredentials: true,
-            //         validateStatus: ()=>true //allow all statusCode
-            //     }
-            // );
             const response = await login(data);
             console.log(response.data);
             if (response.status < 200 || response.status >= 300) 
@@ -120,15 +91,6 @@ export const logoutThunk = createAsyncThunk(
     async (_,{ rejectWithValue })=>{
         try
         {
-            // const response = await axios.post(
-            //     'http://localhost:3000/api/v1/users/logout',
-            //     // 'https://nj9lkx6f-3000.inc1.devtunnels.ms/api/v1/users/logout',
-            //     {},
-            //     {
-            //         withCredentials: true,
-            //         validateStatus: ()=>true //allow all statusCode
-            //     }
-            // );
             const response = await logout();
             console.log(response.data);
             if (response.status < 200 || response.status >= 300) 

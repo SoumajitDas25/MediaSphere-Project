@@ -53,8 +53,99 @@ const getUserChannelProfile = async (username)=>{
     }
 }
 
+const changePassword = async(oldPassword,newPassword)=>{
+    try
+    {
+        const reponse = await api(
+            `/${routePrefix}/change-password`,
+            {oldPassword,newPassword},
+            'PATCH'
+        );
+        return reponse;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const updateAccountDetails = async(updatedData)=>{
+    try
+    {
+        const reponse = await api(
+            `/${routePrefix}/update-account`,
+            updatedData,
+            'PATCH'
+        );
+        return reponse;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const updateAvatar = async({newAvatar})=>{
+    try
+    {
+        const reponse = await api(
+            `/${routePrefix}/update-avatar`,
+            {avatar:newAvatar},
+            'PATCH',
+            {
+                'Content-Type': 'multipart/form-data'
+            }
+        );
+        return reponse;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const updateCoverImage = async({newCoverImage})=>{
+    try
+    {
+        const reponse = await api(
+            `/${routePrefix}/update-cover-image`,
+            {coverImage:newCoverImage},
+            'PATCH',
+            {
+                'Content-Type': 'multipart/form-data'
+            }
+        );
+        return reponse;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const getWatchHistory = async()=>{
+    try
+    {
+        const reponse = await api(
+            `/${routePrefix}/get-watch-history`,
+            {},
+            'GET'
+        );
+        return reponse;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 export default {
     getUser,
     signup,
-    getUserChannelProfile
+    getUserChannelProfile,
+    changePassword,
+    updateAccountDetails,
+    updateAvatar,
+    updateCoverImage,
+    getWatchHistory
 }

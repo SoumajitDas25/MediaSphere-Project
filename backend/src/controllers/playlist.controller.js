@@ -40,7 +40,10 @@ const createPlaylist = asyncHandler(async (req, res) => {
 
 })
 
-const getUserPlaylists = asyncHandler(async (req, res) => {
+const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
+
+    //fetch page & limit from req query
+    const {page = 1, limit = 9} = req.query;
 
     //fetch userId from req params
     const {userId} = req.params
@@ -57,35 +60,106 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     }
 
     //get all playlists for the user
-    const playlists = await Playlist.aggregate([
+    const totalPlaylists = await Playlist.find(
         {
-            $match: {
+            owner: userId
+        }
+    );
+    if(!totalPlaylists)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total User Playlists");
+    }
+
+    //check if page no. exceeds max page no.
+    let totalPages = Math.ceil(totalPlaylists.length / Number(limit));
+    if(totalPages < Number(page))
+    {
+        throw new ApiError(400,"Page Number exceeds Max Page Number");
+    }
+
+    //get paginated playlists for the user
+    const paginatedPlaylists = await Playlist.aggregate([
+        {
+            $match: { //get the user playlist docs
                 owner: new mongoose.Types.ObjectId(String(userId))
             }
         },
+        {   //No of docs to skip
+            $skip: (Number(page) - 1) * Number(limit)
+        },
+        {   //Max No of docs to be fetched
+            $limit: Number(limit)
+        },
         {
-            $lookup: {
+            $lookup: { //get the video docs in the playlist
                 from: "videos",
                 localField: "videos",
                 foreignField: "_id",
                 as: "videos"
             }
+        },
+        { 
+           $addFields: { //count the videos docs in the playlists
+                videosCount: {
+                    $size: "$videos" 
+                }
+           }
+        },
+        {
+            $addFields: { //add the owner info to each doc
+                owner: {
+                    _id: user._id,
+                    username: user.username,
+                    channelName: user.channelName,
+                    avatar: user.avatar
+                }
+            }
+        },
+        {
+            $addFields:{ //to store the thumbnail of first video obj from vidoes[]
+                thumbnail: {
+                    $cond: {
+                        if: { 
+                            $gt: [{ $size: "$videos" }, 0] 
+                        }, // Check if the videos array has at least one video doc
+                        then: { 
+                            $first: "$videos.thumbnail"
+                        }, // Get the thumbnail of the first video doc
+                        else: null // Set to null if no video docs are found
+                    }
+                }
+            }
+        },
+        {
+            $project:{ //exclude the videos[] from each doc
+                videos: 0 
+            }
         }
     ]);
-    if(!playlists)
+    if(!paginatedPlaylists)
     {
         throw new ApiError(500,"Something went wrong while fetching playlist documents");
     }
 
-    //send the playlists[] as response
+    //send the paginatedPlaylists[] as response
     res.status(200)
     .json(
-        new ApiResponse(200,playlists,"User Playlists fetched Sucessfully")
+        new ApiResponse(
+            200,
+            {
+                totalPlaylists: totalPlaylists.length,
+                currentPage: Number(page),
+                totalPages,
+                paginatedContent:paginatedPlaylists,
+            },
+            "Paginated User Playlists fetched Successfully"
+        )
     );
 
 })
 
 const getPlaylistById = asyncHandler(async (req, res) => {
+
     //fetch playlistId from req params
     const {playlistId} = req.params
     if(!isValidObjectId(playlistId))
@@ -105,7 +179,70 @@ const getPlaylistById = asyncHandler(async (req, res) => {
                 from: "videos",
                 localField: "videos",
                 foreignField: "_id",
-                as: "videos"
+                as: "videos",
+                pipeline: [
+                    {
+                        $lookup: { //get the video owner obj by id
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: { //include only these fields for owner doc
+                                        channelName: 1,
+                                        username: 1,
+                                        avatar: 1,
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: { //store the first element(obj) of owner[] field
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    },
+                    {
+                        $project: { //include only these fields for each video doc
+                            thumbnail: 1,
+                            title: 1,
+                            duration: 1,
+                            owner: 1,
+                            viewsCount: 1,
+                            // likesCount: 1,
+                            // commentsCount: 1,
+                            createdAt: 1,
+                            updatedAt: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $lookup: { //get the playlist owner obj by id
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: { //return only these fields
+                            channelName: 1,
+                            username: 1,
+                            avatar: 1,
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: { //store the first element(obj) of owner[] field
+                owner: {
+                    $first: "$owner"
+                }
             }
         }
     ]);
@@ -286,7 +423,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
 
 export {
     createPlaylist,
-    getUserPlaylists,
+    getPaginatedUserPlaylists,
     getPlaylistById,
     addVideoToPlaylist,
     removeVideoFromPlaylist,

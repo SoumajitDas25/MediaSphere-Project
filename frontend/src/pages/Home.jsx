@@ -1,11 +1,8 @@
 import React from 'react'
 import {ListContainer} from '../components'
 import {VideoThumbnail} from "../assets/images"
-import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
-
-  const navigate = useNavigate();
 
     const videos=[
         {
@@ -74,17 +71,7 @@ const Home = () => {
     ]
 
   return (
-            // <div className="grid grid-cols-12 gap-[1rem] md:gap-[1.2vw] xl:gap-[1.5rem] xxl:w-[100rem] mx-auto flex-1">
-            //   {
-            //     videos.map((video,index)=>(
-            //       <div key={video._id} className='col-span-full sm:col-span-10 sm:col-start-2 md:col-span-6 lg:col-span-4 xl:col-span-3 xl:max-w-[25rem] flex justify-center' onClick={()=>navigate('/video')}>
-            //         <VideoCard  {...video}/>
-            //       </div>
-            //     ))
-            //   }
-            // </div>
-            <ListContainer data={videos} type='Video'/>
-
+          <ListContainer data={videos} type='Video'/>
   )
 }
 
