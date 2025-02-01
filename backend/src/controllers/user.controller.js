@@ -5,6 +5,7 @@ import {User} from '../models/user.model.js'
 import {fileUpload,deleteFile} from '../utils/cloudinary.js'
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 const cookieOptions={
     httpOnly:true,
@@ -110,6 +111,7 @@ const loginUser = asyncHandler(async (req,res)=>{
     //find the user document by username or email
     const user = await User.findOne({
         $or:[{username},{email}]
+        // username
     });
     if(!user)
     {
@@ -117,11 +119,17 @@ const loginUser = asyncHandler(async (req,res)=>{
     }
 
     //check whether the password of user document matches the given password
-    const isPasswordValid = await user.isPasswordCorrect(password);
-    if(!isPasswordValid)
+    //commented for not checking the passsword hash - for testing purpose
+    // const isPasswordValid = await user.isPasswordCorrect(password);
+    // if(!isPasswordValid)
+    // {
+    //     throw new ApiError(401,"Incorrect Credentials");
+    // }
+    //this below code will be used to check the password - for testing purpose
+    if(user.password !== password)
     {
         throw new ApiError(401,"Incorrect Credentials");
-    }
+    }   
 
     //generate access & refresh token
     const {refreshToken,accessToken} = await generateAccessAndRefreshToken(user._id);

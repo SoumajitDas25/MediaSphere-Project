@@ -150,7 +150,7 @@ const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
                 totalPlaylists: totalPlaylists.length,
                 currentPage: Number(page),
                 totalPages,
-                paginatedContent:paginatedPlaylists,
+                paginatedContent:paginatedPlaylists
             },
             "Paginated User Playlists fetched Successfully"
         )
@@ -158,7 +158,7 @@ const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
 
 })
 
-const getPlaylistById = asyncHandler(async (req, res) => {
+const getPlaylistInfoById = asyncHandler(async (req,res)=>{
 
     //fetch playlistId from req params
     const {playlistId} = req.params
@@ -166,9 +166,145 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     {
         throw new ApiError(400,"Invalid Playlist Id");
     }
+
+    //get the playlist info
+    const playlistInfo = await Playlist.aggregate([
+        {
+            $match:{ //get the playlist doc by id
+                _id: new mongoose.Types.ObjectId(String(playlistId))
+            }
+        },
+        { 
+            $addFields: { //count the videos in the playlists
+                 videosCount: {
+                     $size: "$videos" 
+                 }
+            }
+         },
+         {
+            $lookup:{ // get the owner info
+                from:"users",
+                foreignField:"_id",
+                localField:"owner",
+                as:"owner",
+                pipeline:[{
+                    $project:{
+                        avatar:1,
+                        username:1,
+                        channelName:1
+                    }
+                }]
+            }
+         },
+         {
+            $addFields: { //store the first element(obj) of owner[] field
+                owner: {
+                    $first: "$owner"
+                }
+            }
+         },
+         {
+            $addFields: {
+                firstVideo:{
+                    $first: "$videos"
+                }
+            }
+         },
+         {
+            $lookup:{
+                from:"videos",
+                foreignField:"_id",
+                localField:"firstVideo",
+                as:"firstVideo",
+                pipeline:[
+                    {
+                        $project:{ //return only thumbnail
+                            thumbnail:1
+                        }
+                    }
+                ]
+            }
+         },
+        {
+            $addFields:{ //to store the thumbnail of first video obj from vidoes[]
+                thumbnail: {
+                    $cond: {
+                        if: { 
+                            $gt: [{ $size: "$videos" }, 0] 
+                        }, // Check if the videos array has at least one video doc
+                        then: { 
+                            $first: "$firstVideo.thumbnail"
+                        }, // Get the thumbnail of the first video doc
+                        else: null // Set to null if no video docs are found
+                    }
+                }
+            }
+        },
+         {
+            $project: {
+                videos: 0,
+                firstVideo: 0
+            }
+         }
+    ])
+    if(!playlistInfo)
+    {
+        throw new ApiError(400,"Incorrect Playlist Id - Playlist does not exist");
+    }
+
+    //send the Playlist info as response
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            // {
+                // name: playlist.name,
+                // description: playlist.description,
+                // owner: playlist.owner,
+                playlistInfo[0]
+            // }
+            ,
+            "Playlist Thumbnail fetched Successfully")
+    );
+
+})
+
+const getPlaylistVideosById = asyncHandler(async (req, res) => {
+
+    //fetch page & limit from req query
+    const {page = 1, limit = 9} = req.query;
+
+    //fetch playlistId from req params
+    const {playlistId} = req.params
+    if(!isValidObjectId(playlistId))
+    {
+        throw new ApiError(400,"Invalid Playlist Id");
+    }
+
+    //check if the playlist exists or not
+    const playlist = await Playlist.findById(playlistId);
+    if(!playlist)
+    {
+        throw new ApiError(400,"Incorrect Playlist Id - Playlist does not exist");
+    }
+
+    //get all videos for the playlist
+    const totalPlaylistVideos = playlist.videos.length;
+
+    if(!totalPlaylistVideos)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total Playlists Videos");
+    }
+
+    //check if page no. exceeds max page no.
+    let totalPages = Math.ceil(totalPlaylistVideos / Number(limit));
+    if(totalPages < Number(page))
+    {
+        throw new ApiError(400,"Page Number exceeds Max Page Number");
+    }
     
     //get playlist by id
-    const playlist = await Playlist.aggregate([
+    const paginatedPlaylistVideos = await Playlist.aggregate([
         {
             $match: { //find the playlist doc by id
                 _id: new mongoose.Types.ObjectId(String(playlistId))
@@ -181,6 +317,12 @@ const getPlaylistById = asyncHandler(async (req, res) => {
                 foreignField: "_id",
                 as: "videos",
                 pipeline: [
+                    {   //No of video docs to skip
+                        $skip: (Number(page) - 1) * Number(limit)
+                    },
+                    {   //Max No of video docs to be fetched
+                        $limit: Number(limit)
+                    },
                     {
                         $lookup: { //get the video owner obj by id
                             from: "users",
@@ -222,43 +364,29 @@ const getPlaylistById = asyncHandler(async (req, res) => {
             }
         },
         {
-            $lookup: { //get the playlist owner obj by id
-                from: "users",
-                localField: "owner",
-                foreignField: "_id",
-                as: "owner",
-                pipeline: [
-                    {
-                        $project: { //return only these fields
-                            channelName: 1,
-                            username: 1,
-                            avatar: 1,
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            $addFields: { //store the first element(obj) of owner[] field
-                owner: {
-                    $first: "$owner"
-                }
+            $project:{
+                videos: 1
             }
         }
     ]);
-    if(!playlist)
+    if(!paginatedPlaylistVideos)
     {
         throw new ApiError(500,"Something went wrong while fetching Playlist document");
-    }
-    if(!(playlist.length>0))
-    {
-        throw new ApiError(500,"Playlist does not exist");
     }
 
     //send the playist doc as response
     res.status(200)
     .json(
-        new ApiResponse(200,playlist,"Playlist fetched Successfully")
+        new ApiResponse(
+            200,
+            {
+                totalPlaylistVideos: totalPlaylistVideos,
+                currentPage: Number(page),
+                totalPages,
+                paginatedContent:paginatedPlaylistVideos[0].videos
+            },
+            "Paginated Playlist Videos fetched Successfully"
+        )
     );
 
 })
@@ -424,7 +552,8 @@ const updatePlaylist = asyncHandler(async (req, res) => {
 export {
     createPlaylist,
     getPaginatedUserPlaylists,
-    getPlaylistById,
+    getPlaylistInfoById,
+    getPlaylistVideosById,
     addVideoToPlaylist,
     removeVideoFromPlaylist,
     deletePlaylist,
