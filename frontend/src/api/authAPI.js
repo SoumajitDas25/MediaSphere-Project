@@ -1,12 +1,14 @@
-import api from "./apiConfig";
+import Api from "./config/API";
 
 const routePrefix = 'users';
+const ApiInstance = new Api(routePrefix);
+const {api} = ApiInstance;
 
 const login = async (data)=>{
     try
     {
         const response =  await api(
-            `/${routePrefix}/login`,
+            `/login`,
             data,
             'POST'
         );
@@ -22,7 +24,7 @@ const logout = async ()=>{
     try
     {
         const response =  await api(
-            `/${routePrefix}/logout`,
+            `/logout`,
             {},
             'POST'
         );
@@ -38,7 +40,7 @@ const refreshToken = async ()=>{
     try
     {
         const response =  await api(
-            `/${routePrefix}/refresh-token`,
+            `/refresh-token`,
             {},
             'POST'
         );

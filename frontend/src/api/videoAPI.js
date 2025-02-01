@@ -1,12 +1,14 @@
-import api from "./apiConfig";
+import Api from "./config/API";
 
 const routePrefix = 'videos';
+const ApiInstance = new Api(routePrefix);
+const {api} = ApiInstance;
 
 const getUserVideos = async (userId,page,limit)=>{
     try
     {
         const response =  await api(
-            `/${routePrefix}/user/${userId}`,
+            `/user/${userId}`,
             { //will be converted to query params
                 page:page,
                 limit:limit

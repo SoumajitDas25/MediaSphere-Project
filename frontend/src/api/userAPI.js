@@ -1,12 +1,14 @@
-import api from "./apiConfig";
+import Api from "./config/API";
 
 const routePrefix = 'users';
+const ApiInstance = new Api(routePrefix);
+const {api} = ApiInstance;
 
 const getUser = async ()=>{
     try
     {
         const response =  await api(
-            `/${routePrefix}/current-user`,
+            `/current-user`,
             {},
             'GET'
         );
@@ -22,7 +24,7 @@ const signup = async (data)=>{
     try
     {
         const reponse = await api(
-            `/${routePrefix}/signup`,
+            `/signup`,
             data,
             'POST',
             {
@@ -41,7 +43,7 @@ const getUserChannelProfile = async (username)=>{
     try
     {
         const reponse = await api(
-            `/${routePrefix}/channel/${username}`,
+            `/channel/${username}`,
             {},
             'GET'
         );
@@ -57,7 +59,7 @@ const changePassword = async(oldPassword,newPassword)=>{
     try
     {
         const reponse = await api(
-            `/${routePrefix}/change-password`,
+            `/change-password`,
             {oldPassword,newPassword},
             'PATCH'
         );
@@ -73,7 +75,7 @@ const updateAccountDetails = async(updatedData)=>{
     try
     {
         const reponse = await api(
-            `/${routePrefix}/update-account`,
+            `/update-account`,
             updatedData,
             'PATCH'
         );
@@ -89,7 +91,7 @@ const updateAvatar = async({newAvatar})=>{
     try
     {
         const reponse = await api(
-            `/${routePrefix}/update-avatar`,
+            `/update-avatar`,
             {avatar:newAvatar},
             'PATCH',
             {
@@ -108,7 +110,7 @@ const updateCoverImage = async({newCoverImage})=>{
     try
     {
         const reponse = await api(
-            `/${routePrefix}/update-cover-image`,
+            `/update-cover-image`,
             {coverImage:newCoverImage},
             'PATCH',
             {
@@ -127,7 +129,7 @@ const getWatchHistory = async()=>{
     try
     {
         const reponse = await api(
-            `/${routePrefix}/get-watch-history`,
+            `/get-watch-history`,
             {},
             'GET'
         );
