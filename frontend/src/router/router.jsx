@@ -6,7 +6,8 @@ import {
     Signup,
     Video,
     PageNotFound,
-    UserChannel
+    UserChannel,
+    Playlist
 } from '../pages';
 import { AuthLayout, Loader } from '../components'
 import App from "../App";
@@ -61,6 +62,14 @@ const router = createBrowserRouter([
           element: (
             <AuthLayout authentication={true}> 
               <Video/>    
+            </AuthLayout>
+          )
+        },
+        {
+          path: "/playlist/:playlistId",
+          element: (
+            <AuthLayout authentication={true}> 
+              <Playlist/>    
             </AuthLayout>
           )
         },
