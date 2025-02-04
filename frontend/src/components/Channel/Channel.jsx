@@ -198,31 +198,38 @@ const Channel = () => {
     ];
 
     const loadContentData = async (pageIndex = 1,limit = 6)=>{
+
         try
         {
+            let response;
+
             switch(activeContent.type)
             {
                 case 'Video':
                 {
-                    const response = await getUserVideos(channelProfile._id,pageIndex,limit);
-                    // setActiveContentData(response.data.data);
-                    return response.data.data;
+                    response = await getUserVideos(channelProfile._id,pageIndex,limit);
                     break;
                 }
                 case 'Tweet':
                 {
-                    const response = await getUserTweets(channelProfile._id,pageIndex,3);
-                    // setActiveContentData(response.data.data);
-                    return response.data.data;
+                    response = await getUserTweets(channelProfile._id,pageIndex,3);
                     break;
                 }
                 case 'Playlist':
                 {
-                    const response = await getUserPlaylists(channelProfile._id,pageIndex,4);
-                    // setActiveContentData(response.data.data);
-                    return response.data.data;
+                    response = await getUserPlaylists(channelProfile._id,pageIndex,4);
                     break;
                 }
+            }
+            if (response.status < 200 || response.status >= 300)
+            {
+                //error
+                //TODO: View the error component
+                console.log("Error: ");
+            }
+            else
+            {
+                return response.data.data;
             }
         }
         catch(error)
@@ -230,10 +237,6 @@ const Channel = () => {
             //display an error message
             console.log(error);
         }
-        // finally
-        // {
-        //     setLoading(false);
-        // }
     }
 
     useEffect(()=> {
@@ -255,7 +258,7 @@ const Channel = () => {
                 }
                 else
                 {
-                    console.log(response.data.data);
+                    // console.log(response.data.data);
                     setChannelProfile(response.data.data);
                     setActiveButtonIndex(0);
                     setActiveContent(ribbon[0].content);

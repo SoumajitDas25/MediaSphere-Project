@@ -34,7 +34,7 @@ const Header = (
   }
 
   return (
-    <div className="px-[1rem] sm:px-[2.2rem] py-[0.8rem] flex  flex-col gap-4 bg-light-bg_light dark:bg-black text-light-dark-font_color_dark dark:text-dark-font_color_light fixed top-0 w-full z-[50] transition-colors duration-300">
+    <div className="px-[1rem] sm:px-[2.2rem] py-[0.8rem] flex  flex-col gap-4 bg-light-bg_light dark:bg-black text-light-dark-font_color_dark dark:text-dark-font_color_light fixed top-0 w-full z-[30] transition-colors duration-300">
 
         <div className="flex justify-between">
 

@@ -52,7 +52,7 @@ const PlaylistCard = ({
     return (
         <div 
         className="bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light grid grid-flow-col grid-cols-5 grid-rows-5 rounded-lg overflow-hidden w-full" 
-        onClick={()=>navigate('/playlist')}
+        onClick={()=>navigate(`/playlist/${_id}`)}
         >
 
             <div className="col-span-full row-span-3 relative overflow-hidden flex justify-center">

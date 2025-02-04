@@ -8,6 +8,7 @@ const ListContainer = ({
     isPaginationEnabled = false,
     // totalPaginationPages = 1,
     fetchPaginatedData, //for paginated data
+    viewType = 'Grid'
 }) => {
 
     const [activeButtonIndex,setActiveButtonIndex] = useState(null);
@@ -99,14 +100,14 @@ const ListContainer = ({
             <div className="flex flex-col justify-center">
 
                 {/* Content Container */}
-                <div className="grid grid-cols-12 gap-[1rem] md:gap-[1.2vw] xl:gap-[1.5rem] xxl:max-w-[100rem] flex-1 p-4">
+                <div className={`grid grid-cols-12 gap-[1rem] md:gap-[1.2vw] xl:gap-[1.5rem] xxl:max-w-[100rem] flex-1 p-4`}>
                 {
                     data ?
                     (
                         (type==='Video' &&
                             data.map((video)=>(
-                                <div key={video._id} className='col-span-full sm:col-span-10 sm:col-start-2 md:col-span-6 lg:col-span-4 aspect-w-5 aspect-h-[4.5] flex justify-center'>
-                                    <VideoCard  {...video}/>
+                                <div key={video._id} className={`col-span-full ${viewType==='Grid'?'sm:col-span-10 sm:col-start-2 md:col-span-6 lg:col-span-4 aspect-1 flex justify-center':''}`}>
+                                    <VideoCard  {...video} viewType={viewType}/>
                                 </div>
                             ))
                         ) 
@@ -134,15 +135,15 @@ const ListContainer = ({
                 }
                 </div>
 
-                {/* Horizontal line bar */}
-                <div className='bg-light-font_color_dark dark:bg-dark-font_color_light h-[1px]'></div>
 
-                {/* Page Buttons - only for Paginated Data */}
                 {
-                    isPaginationEnabled && totalPaginationPages && (
+                    isPaginationEnabled && totalPaginationPages && totalPaginationPages > 1 && (
+                    <>
+                        {/* Horizontal line bar */}
+                        <div className='bg-light-font_color_dark dark:bg-dark-font_color_light h-[1px]'></div>
+                        {/* Page Buttons - only for Paginated Data */}
                         <div className="flex flex-row justify-center items-center gap-2 py-4 px-2">
                         {
-                            totalPaginationPages ?
                             Array.from({length:totalPaginationPages},(_,index)=>(
                                 <Button 
                                 key={index+1}
@@ -150,10 +151,9 @@ const ListContainer = ({
                                 onClick={()=>{handlePageButtonClick(index+1)}}
                                 >{index+1}</Button>
                             ))
-                            :
-                            null
                         }
                         </div>
+                    </>
                     )
                 }
             </div>
