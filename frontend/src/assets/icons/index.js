@@ -4,7 +4,6 @@ import { LuUserSquare2 } from "react-icons/lu";
 import { AiOutlineHistory } from "react-icons/ai";
 import { MdOutlinePlaylistPlay } from "react-icons/md";
 import { MdOutlineVideoLibrary } from "react-icons/md";
-import { MdOutlinePostAdd } from "react-icons/md";
 import { IoMdHeartEmpty } from "react-icons/io";
 import { IoMdHeart } from "react-icons/io";
 import { MdOutlineComment } from "react-icons/md";
@@ -14,7 +13,6 @@ import { IoIosSearch } from "react-icons/io";
 import { MdOutlineLightMode } from "react-icons/md";
 import { MdOutlineDarkMode } from "react-icons/md";
 import { RiVideoUploadLine } from "react-icons/ri";
-import { IoCreateOutline } from "react-icons/io5";
 import { FaUserCircle } from "react-icons/fa";
 import { HiOutlineUserAdd } from "react-icons/hi";
 import { RiUserShared2Line } from "react-icons/ri";
@@ -23,6 +21,10 @@ import { MdLogout } from "react-icons/md";
 import { FaArrowRight } from "react-icons/fa6";
 import { IoEyeOutline } from "react-icons/io5";
 import { IoEyeOffOutline } from "react-icons/io5";
+import { FiUpload } from "react-icons/fi";
+import { IoCloseOutline } from "react-icons/io5";
+import { BsPlusLg } from "react-icons/bs";
+import { MdPostAdd } from "react-icons/md";
 import NoUserIcon from "./user.png"
 
 
@@ -43,7 +45,6 @@ export {
     MdOutlineLightMode as LightModeIcon,
     MdOutlineDarkMode as DarkModeIcon,
     RiVideoUploadLine as VideoUploadIcon,
-    IoCreateOutline as CreateTweetIcon,
     FaUserCircle as NoAvatarIcon,
     HiOutlineUserAdd as RegisterIcon,
     RiUserShared2Line as LoginIcon,
@@ -51,5 +52,9 @@ export {
     FaArrowRight as RightArrowIcon,
     IoEyeOutline as ShowIcon,
     IoEyeOffOutline as HideIcon,
+    FiUpload as UploadIcon,
+    IoCloseOutline as CloseIcon,
+    BsPlusLg as PlusIcon,
+    MdPostAdd as CreateTweetIcon,
     NoUserIcon
 }

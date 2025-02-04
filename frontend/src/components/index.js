@@ -14,6 +14,8 @@ import VideoCard from "./VideoCard/VideoCard";
 import TweetCard from "./TweetCard/TweetCard";
 import PlaylistCard from "./PlaylistCard/PlaylistCard";
 import ContentLoader from "./Loader/ContentLoader";
+import BgFreezer from "./BgFreezer/BgFreezer";
+import Modal from "./Modal/Modal";
 
 export {
     Header,
@@ -32,4 +34,6 @@ export {
     VideoCard,
     TweetCard,
     PlaylistCard,
+    BgFreezer,
+    Modal
 }
