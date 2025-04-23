@@ -1,21 +1,31 @@
 import dotenv from "dotenv";
 import connectDB from "./db/index.js";
 import { app } from "./app.js";
+import { getSocketIO, setupSocket } from "./sockets/socket.config.js";
+import {createServer} from 'http';
+import { initUserSocketMap } from "./socketStore.js";
 
 dotenv.config({
-    path:"./env"
+    path:"./.env"
 });
 
 connectDB()
 .then(()=>{
     console.log("DATABASE connected !");
 
+    //create http server with the express app
+    const server = createServer(app);
+    //set up socket with this server
+    setupSocket(server);
+
+    initUserSocketMap(); //intialize userSocketMap
+
     app.on('error',(error)=>{
         console.log("ERROR: ",error);
         throw error;
     })
 
-    app.listen(process.env.PORT || 8000,()=>{
+    server.listen(process.env.PORT || 8000,()=>{
         console.log(`Server is listening at port: ${process.env.PORT}`);
     })
 })

@@ -28,6 +28,7 @@ import subscriptionRouter from './routes/subscription.routes.js'
 import playlistRouter from './routes/playlist.routes.js'
 import dashboardRouter from './routes/dashboard.routes.js'
 import replyRouter from './routes/reply.routes.js'
+import socketRouter from './routes/socket.routes.js'
 
 //routes declaration
 app.use("/api/v1/users",userRouter);
@@ -39,5 +40,6 @@ app.use("/api/v1/subscriptions",subscriptionRouter);
 app.use("/api/v1/playlists",playlistRouter);
 app.use("/api/v1/dashboard",dashboardRouter);
 app.use("/api/v1/replies",replyRouter);
+app.use("/api/v1/socket",socketRouter);
 
 export { app };
