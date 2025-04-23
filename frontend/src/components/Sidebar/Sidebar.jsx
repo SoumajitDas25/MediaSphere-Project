@@ -7,7 +7,6 @@ import {
     PlaylistIcon,
     VideoIcon,
     TweetIcon,
-    LikeIcon,
     WatchLaterIcon,
     RegisterIcon,
     LoginIcon,
@@ -23,7 +22,7 @@ const Sidebar = ({
 }) => {
 
     const dispatch = useDispatch();
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
     const isloggedIn = useSelector(state=>state.auth.isloggedIn);
     const user = useSelector(state=>state.user.user);
     
@@ -115,8 +114,8 @@ const Sidebar = ({
     // }
 
     return (
-        <div className={`bg-light-bg_light dark:bg-dark-bg_dark text-light-font_color_dark  dark:text-dark-font_color_light h-[100vh] fixed left-0 top-0 z-[20] overflow-y-auto overflow-x-hidden transition-[width,color,background-color,border-color] ease-in-out duration-300 ${isloggedIn?'pt-[calc(2.6rem+17vw)] sm:pt-[7.6rem]':'mt-[calc(1.6rem+7vw)] sm:mt-[4.1rem]'} ${sidebarExpanded?'flex w-[75%] xsm:w-[15rem]':'hidden sm:flex sm:justify-start sm:w-[12vw] md:w-[5.5rem] lg:w-[6rem]'} scrollbar-hide`}>
-            <div className={`flex flex-col items-center py-[1rem] sm:text-[1.6vw] sm:h-full max-h-[50rem] w-full ${sidebarExpanded?'w-full gap-2 text-[4vw] sm:text-[1rem]':'justify-start text-[1.8vw] md:text-[1.4vw] lg:text-[0.75rem]'} font-semibold`}>
+        <div className={`bg-light-bg_light dark:bg-dark-bg_dark text-light-font_color_dark  dark:text-dark-font_color_light h-[100vh] fixed left-0 top-0 z-[20] overflow-y-auto overflow-x-hidden transition-[width,color,background-color,border-color,transform]  duration-300 sm: ${isloggedIn?'pt-[calc(2.6rem+17vw)] sm:pt-[7.6rem]':'mt-[calc(1.6rem+7vw)] sm:mt-[4.1rem]'} flex w-[75%] xsm:w-[15rem] ${sidebarExpanded?'translate-x-0':'-translate-x-[100%] sm:translate-x-0 sm:justify-start sm:w-[12vw] md:w-[5.5rem] lg:w-[6rem]'} scrollbar-hide`}>
+            <div className={`flex flex-col items-center py-[1rem] sm:h-full max-h-[50rem] w-full gap-2 text-[4vw] sm:text-[1rem] ${!sidebarExpanded && 'sm:justify-start sm:text-[1.8vw] md:text-[1.4vw] lg:text-[0.75rem] sm:gap-0'} font-semibold`}>
                 {
                     items.map((item,index)=>
                         item.auth===isloggedIn?
@@ -124,7 +123,7 @@ const Sidebar = ({
                             item.name==='Logout'?
                             (
                             <div
-                            className={`flex ${sidebarExpanded?'flex-row justify-left gap-2 px-6':'flex-col justify-center px-1'} items-center py-[0.6rem] w-full hover:bg-color-yellow hover:text-light-font_color_dark rounded-lg cursor-pointer`}
+                            className={`flex  flex-row justify-left gap-2 px-6 ${!sidebarExpanded &&'sm:flex-col sm:justify-center sm:px-1 sm:gap-0'} items-center py-[0.6rem] w-full hover:bg-color-yellow hover:text-light-font_color_dark rounded-lg cursor-pointer`}
                             key={index}
                             onClick={logoutHandler}
                             >
@@ -136,7 +135,7 @@ const Sidebar = ({
                             )
                             :
                             <Link
-                            className={`flex ${sidebarExpanded?'flex-row justify-left gap-2 px-6':'flex-col justify-center px-1'} items-center py-[0.6rem] w-full hover:bg-color-yellow hover:text-light-font_color_dark rounded-lg cursor-pointer`}
+                            className={`flex  flex-row justify-left gap-2 px-6 ${!sidebarExpanded &&'sm:flex-col sm:justify-center sm:px-1 sm:gap-0'} items-center py-[0.6rem] w-full hover:bg-color-yellow hover:text-light-font_color_dark rounded-lg cursor-pointer`}
                             key={index}
                             to={item.path}
                             onClick={()=>setsidebarExpanded(false)}

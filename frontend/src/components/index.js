@@ -14,8 +14,13 @@ import VideoCard from "./VideoCard/VideoCard";
 import TweetCard from "./TweetCard/TweetCard";
 import PlaylistCard from "./PlaylistCard/PlaylistCard";
 import ContentLoader from "./Loader/ContentLoader";
+import UploadVideoModal from "./UploadVideo/UploadVideoModal";
+import CreateTweetModal from "./CreateTweetModal/CreateTweetModal";
+import PublishButton from "./PublishButton/PublishButton";
 import BgFreezer from "./BgFreezer/BgFreezer";
 import Modal from "./Modal/Modal";
+import Uploader from "./Uploader/Uploader";
+import Message from "./Message/Message";
 
 export {
     Header,
@@ -34,6 +39,11 @@ export {
     VideoCard,
     TweetCard,
     PlaylistCard,
+    UploadVideoModal,
+    CreateTweetModal,
+    PublishButton,
     BgFreezer,
-    Modal
+    Modal,
+    Uploader,
+    Message
 }

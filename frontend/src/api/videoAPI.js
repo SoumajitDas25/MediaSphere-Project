@@ -23,6 +23,37 @@ const getUserVideos = async (userId,page,limit)=>{
     }
 }
 
+const publishVideo = async(uploadData,setProgress)=>{
+    try
+    {
+        const {video,thumbnail,title,description}=uploadData;
+        const formData= new FormData();
+        formData.append('videoFile',video);
+        formData.append('thumbnailFile',thumbnail);
+        formData.append('title',title);
+        formData.append('description',description);
+
+        const response =  await api(
+            `/`,
+            formData,
+            'POST',
+            {
+                'Content-Type': 'multipart/form-data'
+            },
+            { //uploadProgress
+                setProgress,
+                limit: 100
+            }
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 export default {
-    getUserVideos
+    getUserVideos,
+    publishVideo
 }

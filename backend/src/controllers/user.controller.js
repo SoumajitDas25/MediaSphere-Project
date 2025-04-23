@@ -460,6 +460,14 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
             }
         },
         {
+            $lookup: {  //get list of user videos
+                from: "videos",
+                localField: "_id",
+                foreignField: "owner",
+                as:"videos"
+            }
+        },
+        {
             $addFields: {
                 subscribersCount: { //calculate the size of subscribers field
                     $size: "$subscribers"
@@ -473,19 +481,23 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
                         then: true,
                         else: false
                     }
+                },
+                videosCount:{ //calculate the size of videos field
+                    $size: "$videos"
                 }
             }
         },
         {
             $project:{ //return only these fields
-                fullName: 1,
+                channelName: 1,
                 username: 1,
                 email: 1,
                 avatar: 1,
                 coverImage: 1,
                 subscribersCount: 1,
                 channelSubscribedCount: 1,
-                isSubscribed: 1
+                isSubscribed: 1,
+                videosCount: 1
             }
         }
     ]);

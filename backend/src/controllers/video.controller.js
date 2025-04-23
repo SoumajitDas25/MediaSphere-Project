@@ -9,7 +9,9 @@ import { Playlist } from "../models/playlist.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
-import {fileUpload,deleteFile,deleteVideoFile} from "../utils/cloudinary.js"
+import {fileUpload,deleteFile,deleteVideoFile, fileUploadWithProgressTracking} from "../utils/cloudinary.js"
+import { deleteTempFiles, getAbsoluteFilePath } from "../utils/FileHandler.js"
+import {uploadEmitters} from "../sockets/emitters/index.js";
 
 const assetFolderName ="videos";
 
@@ -105,8 +107,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
 
+    let data;
     //fetch page & limit from req query
     const {page = 1, limit = 9} = req.query;
+    console.log(page,limit);
 
     //get userId from req params
     const {userId} = req.params;
@@ -132,73 +136,85 @@ const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
     {
         throw new ApiError(500,"Something went wrong while fetching Total Videos");
     }
-
-    //check if page no. exceeds max page no.
-    let totalPages = Math.ceil(totalVideos.length / Number(limit));
-    if(totalPages < Number(page))
+    if(totalVideos.length < 1)
     {
-        throw new ApiError(400,"Page Number exceeds Max Page Number");
+        data={
+            totalVideos:0,
+            paginatedContent:null,
+            totalPages:0
+        }
     }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalVideos.length / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
 
-    const paginatedUserVideos = await Video.aggregate([
-        {
-            $match:{ //get the user videos
-                owner: new mongoose.Types.ObjectId(String(userId))
-            }
-        },
-        {         
-            $sort: { //sort the documents with the most recent to least recent
-                createdAt: 1 
-            }
-        },
-        {
-            //No. of docs to skip
-            $skip: (Number(page) - 1) * Number(limit)
-        },
-        {   //No. of docs to be fetched
-            $limit: Number(limit)
-        },
-        {
-            $addFields: { //add the owner info to each document
-                owner: {
-                    _id: user._id,
-                    username: user.username,
-                    channelName: user.channelName,
-                    avatar: user.avatar
+        const paginatedUserVideos = await Video.aggregate([
+            {
+                $match:{ //get the user videos
+                    owner: new mongoose.Types.ObjectId(String(userId))
+                }
+            },
+            {         
+                $sort: { //sort the documents with the most recent to least recent
+                    createdAt: 1 
+                }
+            },
+            {
+                //No. of docs to skip
+                $skip: Number(page)<1 ? 0: ((Number(page) - 1) * Number(limit))
+            },
+            {   //No. of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $addFields: { //add the owner info to each document
+                    owner: {
+                        _id: user._id,
+                        username: user.username,
+                        channelName: user.channelName,
+                        avatar: user.avatar
+                    }
+                }
+            },
+            {
+                $project: {
+                    thumbnail: 1,
+                    title: 1,
+                    duration: 1,
+                    owner: 1,
+                    viewsCount: 1,
+                    // likesCount: 1,
+                    // commentsCount: 1,
+                    createdAt: 1,
+                    updatedAt: 1
                 }
             }
-        },
-        {
-            $project: {
-                thumbnail: 1,
-                title: 1,
-                duration: 1,
-                owner: 1,
-                viewsCount: 1,
-                // likesCount: 1,
-                // commentsCount: 1,
-                createdAt: 1,
-                updatedAt: 1
-            }
-        }
-    ]);
+        ]);
 
-    if(!paginatedUserVideos)
-    {
-        throw new ApiError(500,"Something went wrong while fetching User Video documents")
+        if(!paginatedUserVideos)
+        {
+            throw new ApiError(500,"Something went wrong while fetching User Video documents")
+        }
+
+        data={
+            totalVideos: totalVideos.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedUserVideos,
+        };
     }
     
-    //send the paginatedVideos[] as response
+    //send the data as response
     res.status(200)
     .json(
         new ApiResponse(
             200,
-            {
-                totalVideos: totalVideos.length,
-                currentPage: Number(page),
-                totalPages,
-                paginatedContent:paginatedUserVideos,
-            },
+            data,
             "Paginated User Videos fetched Successfully"
         )
     );
@@ -213,28 +229,31 @@ const publishAVideo = asyncHandler(async (req, res) => {
         title = req.body.title
         description = req.body.description
     }
-    if(!(title && description))
-    {
-        throw new ApiError(400,"Video title & description are required");
-    }
-
-    //upload to cloudinary
+    //get local paths of video & thumbail
     let videoLocalPath,thumbnailLocalPath;
-    if(req.files && (Array.isArray(req.files.videoFile) && req.files.videoFile.length > 0) && (Array.isArray(req.files.thumbnail) && req.files.thumbnail.length > 0))
+    if(req.files && (Array.isArray(req.files.videoFile) && req.files.videoFile.length > 0) && (Array.isArray(req.files.thumbnailFile) && req.files.thumbnailFile.length > 0))
     {
         videoLocalPath = req.files.videoFile[0].path;
-        thumbnailLocalPath = req.files.thumbnail[0].path;
+        thumbnailLocalPath = req.files.thumbnailFile[0].path;
     }
     if(!(videoLocalPath && thumbnailLocalPath))
     {
+        deleteTempFiles(req.files);
         throw new ApiError(400,"Video file & thumbnail is required");
     }
-    const videoFile = await fileUpload(videoLocalPath,assetFolderName);       
+    if(!(title && description))
+    {
+        deleteTempFiles(req.files);
+        throw new ApiError(400,"Video title & description are required");
+    }
+
+    //upload to cloudinary with progress tracking
+    const videoFile = await fileUploadWithProgressTracking(videoLocalPath,req.files.videoFile[0].size,1,assetFolderName,req.socketId);     
     if(!videoFile) //upload unsuccessful 
     {
         throw new ApiError(500,"Video file upload failed");
     }
-    const thumbnail = await fileUpload(thumbnailLocalPath,assetFolderName);
+    const thumbnail = await fileUploadWithProgressTracking(thumbnailLocalPath,req.files.thumbnailFile[0].size,2,assetFolderName,req.socketId);
     if(!thumbnail) //upload unsuccessful 
     {
         throw new ApiError(500,"Thumbnail file upload failed");
@@ -246,7 +265,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         thumbnail: thumbnail.secure_url,
         title: title,
         description: description,
-        duration: videoFile.duration,
+        duration: Math.floor(videoFile.duration),
         owner: req.user.id
     });
     if(!video)
@@ -254,10 +273,14 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while creating video doc entry in db");
     }
 
+    //send the refreshContentList event to the client
+    const {emitUploadComplete} = uploadEmitters;
+    emitUploadComplete(req.user._id);
+
     //send the video obj as response
     res.status(201)
     .json(
-        new ApiResponse(201,video,"Video Published Successfully")
+        new ApiResponse(201,{},"Video Published Successfully")
     );
 })
 

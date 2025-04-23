@@ -25,6 +25,7 @@ import { FiUpload } from "react-icons/fi";
 import { IoCloseOutline } from "react-icons/io5";
 import { BsPlusLg } from "react-icons/bs";
 import { MdPostAdd } from "react-icons/md";
+import { TiTick } from "react-icons/ti";
 import NoUserIcon from "./user.png"
 
 
@@ -56,5 +57,6 @@ export {
     IoCloseOutline as CloseIcon,
     BsPlusLg as PlusIcon,
     MdPostAdd as CreateTweetIcon,
+    TiTick as TickIcon,
     NoUserIcon
 }

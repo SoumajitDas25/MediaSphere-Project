@@ -15,7 +15,9 @@ const darkTheme = {
 
 const colors ={
     yellow: '#FFE500',
-    dark_yellow: '#D59401'
+    dark_yellow: '#D59401',
+    light_red: '#FA6868',
+    red: '#F73131'
 }
 
 export {darkTheme,lightTheme,colors};

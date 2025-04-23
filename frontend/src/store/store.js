@@ -1,10 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
-import {themeSlice,authSlice,userSlice} from "../slices";
+import {themeSlice,authSlice,userSlice,uploadSlice,messageSlice} from "../slices";
 
 export const store = configureStore({
     reducer: {
         theme: themeSlice,
         auth: authSlice,
-        user: userSlice
+        user: userSlice,
+        upload: uploadSlice,
+        message:messageSlice
     }
 })

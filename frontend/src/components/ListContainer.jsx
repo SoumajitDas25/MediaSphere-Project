@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {VideoCard,TweetCard,PlaylistCard,ContentLoader,Button} from '.';
+import { uploadListeners } from '../sockets/listeners';
+import { useSelector } from 'react-redux';
 
 const ListContainer = ({
     // data,
@@ -15,9 +17,12 @@ const ListContainer = ({
     const [loading,setLoading] = useState(false); 
     const [data,setData] = useState(null);
     const [totalPaginationPages,setTotalPaginationPages] = useState(null);
+    // const loggedUserId = useSelector(state=>state.user.user._id);
+    const {listenToUploadComplete,stopListeningUploadComplete} = uploadListeners;
+    const totalPagesRef = useRef(null);
 
     // Function to fetch data(paginated/non-paginated)
-    const loadData = async (pageIndex) => {
+    const loadData = async (pageIndex,allowDelay=false,delayLoadInMs=700) => {
 
         setLoading(true); 
         try 
@@ -25,14 +30,25 @@ const ListContainer = ({
             if(isPaginationEnabled)
             {
                 //fetch paginated data
-                const response = await fetchPaginatedData(pageIndex); 
+                setActiveButtonIndex(pageIndex-1);
+                const response = await fetchPaginatedData(pageIndex);
+                if(response && response.paginatedContent) 
                 setData(response.paginatedContent);
             }
             else
             {
                 //fetch non-paginated data
-                const response = await fetchData(); 
+                const response = await fetchData();
+                if(response) 
                 setData(response);
+            }
+            if(allowDelay)
+            {   // delay loading for smooth load
+                await new Promise((resolve,reject)=>{
+                    const timeOut=setTimeout(()=>{
+                        resolve();
+                    },delayLoadInMs);
+                })
             }
         } 
         catch(error) 
@@ -49,9 +65,9 @@ const ListContainer = ({
 
         if(isPaginationEnabled)
         {
-            loadData(pageIndex);
+            loadData(pageIndex,true);
         }
-        setActiveButtonIndex(pageIndex-1);
+        // setActiveButtonIndex(pageIndex-1);
     }
 
     useEffect(()=>{
@@ -66,13 +82,17 @@ const ListContainer = ({
                     setActiveButtonIndex(0);
                     //fetch paginated data
                     const response = await fetchPaginatedData(1); 
-                    setData(response.paginatedContent);
-                    setTotalPaginationPages(response.totalPages);
+                    if(response)
+                    {
+                        setData(response.paginatedContent);
+                        setTotalPaginationPages(response.totalPages);
+                    }
                 }
                 else
                 {
                     //fetch non-paginated data
-                    const response = await fetchData(); 
+                    const response = await fetchData();
+                    if(response) 
                     setData(response);
                 }
             } 
@@ -87,6 +107,25 @@ const ListContainer = ({
         })();
 
     },[type]);
+
+    useEffect(()=>{
+        totalPagesRef.current = totalPaginationPages;
+        console.log(totalPagesRef);
+    },[totalPaginationPages]);
+
+    useEffect(()=>{
+        listenToUploadComplete((uploaderId,mediaType)=>{
+            // if(loggedUserId===uploaderId)
+            const pageIndex = totalPagesRef.current;
+            if (pageIndex && mediaType.toLowerCase()===type.toLowerCase())
+            {
+            
+            loadData(pageIndex,true,1500); //navigate/refresh to last page to view the new content
+            console.log('Content List Refreshed',pageIndex);
+            }
+        }); 
+        return ()=> stopListeningUploadComplete(); //clean up
+    },[])
 
     return (
         <>
@@ -137,7 +176,7 @@ const ListContainer = ({
 
 
                 {
-                    isPaginationEnabled && totalPaginationPages && totalPaginationPages > 1 && (
+                    (isPaginationEnabled && totalPaginationPages && totalPaginationPages > 1)? (
                     <>
                         {/* Horizontal line bar */}
                         <div className='bg-light-font_color_dark dark:bg-dark-font_color_light h-[1px]'></div>
@@ -154,7 +193,7 @@ const ListContainer = ({
                         }
                         </div>
                     </>
-                    )
+                    ):''
                 }
             </div>
         }

@@ -1,4 +1,6 @@
 import {v2 as cloudinary} from "cloudinary";
+import { deleteTempFileByPath, getAbsoluteFilePath } from "./FileHandler.js";
+import { uploadEmitters } from "../sockets/emitters/index.js";
 import fs from 'fs';
 
 cloudinary.config({ 
@@ -18,7 +20,7 @@ const fileUpload = async (localFilePath,asset_folder)=>{
                 resource_type: 'auto'
             });
             //remove the locally saved temporary file after successful upload
-            fs.unlinkSync(localFilePath);
+            deleteTempFileByPath(localFilePath);
             return response;
         }
         else
@@ -27,7 +29,66 @@ const fileUpload = async (localFilePath,asset_folder)=>{
     catch(error)
     {
         //remove the locally saved temporary file as upload operation got failed
-        fs.unlinkSync(localFilePath);
+        deleteTempFileByPath(localFilePath);
+        return null;
+    }
+}
+
+const fileUploadWithProgressTracking = async (localFilePath,fileSize,fileIndex,asset_folder,socketId)=>{
+    try
+    {
+        const {emitUploadProgress,emitUploadError} = uploadEmitters;
+        if(localFilePath)
+        {
+            //Read file as stream and report progress
+            const absoluteFilePath=getAbsoluteFilePath(localFilePath);
+            let uploadedBytes = 0;
+            const readStream = fs.createReadStream(absoluteFilePath);
+
+            readStream
+            .on("data", (chunk) => {
+                //calculate progress percentage
+                uploadedBytes += chunk.length;
+                const progress = fileSize>0? Math.floor((uploadedBytes / fileSize) * 100):100;
+                //emit to that specific socket
+                emitUploadProgress(socketId,progress,fileIndex);
+            });  
+
+            const response = await new Promise((resolve, reject) => {
+
+                readStream.on("error",(error)=>{
+                    reject(error);
+                });
+
+                const uploadStream=cloudinary.uploader.upload_stream({
+                    asset_folder: `${process.env.CLOUDINARY_PROJECT_FOLDER}/${asset_folder}`,
+                    resource_type: 'auto'
+                },
+                (error, result) => {
+                    if(error) 
+                    reject(error);
+                    else
+                    resolve(result);
+                  }
+                );
+
+                //start the upload
+                readStream.pipe(uploadStream);
+            });
+
+            //remove the locally saved temporary file after successful upload
+            deleteTempFileByPath(localFilePath);
+            return response;
+        }
+        else
+        return null;
+    }
+    catch(error)
+    {
+        // console.log('error');
+        //remove the locally saved temporary file as upload operation got failed
+        emitUploadError(socketId);
+        deleteTempFileByPath(localFilePath);
         return null;
     }
 }
@@ -80,4 +141,4 @@ const deleteVideoFile = async (fileUrl)=>
     }
 }
 
-export {fileUpload,deleteFile,deleteVideoFile};
+export {fileUpload,fileUploadWithProgressTracking,deleteFile,deleteVideoFile};

@@ -67,14 +67,14 @@ const Header = (
               {/* profile option */}
               {
                 <Link 
-                to={isloggedIn?'/channel':'/login'}
+                to={isloggedIn?`/channel/@${(user && isloggedIn)?user.username:''}`:'/login'}
                 className="text-[7vw] sm:text-[2.5rem] cursor-pointer rounded-[50%] overflow-hidden"
                 >
                   {
                     (isloggedIn && user)?
                     <img 
                     src={user.avatar}
-                    className="h-[7vw] sm:h-[2.5rem] rounded-[50%]"
+                    className="h-[7vw] aspect-1 sm:h-[2.5rem] rounded-[50%]"
                     />
                     :<LoginIcon/>
                   }

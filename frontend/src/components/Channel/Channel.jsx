@@ -4,6 +4,7 @@ import { Button, ListContainer,Loader } from '..'
 import { useSelector } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import { userAPI,videoAPI,tweetAPI,playlistAPI } from '../../api'
+import {userEmitters} from '../../sockets/emitters'
 
 const Channel = () => {
 
@@ -18,6 +19,7 @@ const Channel = () => {
     const {getUserVideos} = videoAPI;
     const {getUserTweets} = tweetAPI;
     const {getUserPlaylists} = playlistAPI;
+    const {emitJoinUserPage,emitLeaveUserPage} = userEmitters;
 
     // const videos = [
     //     {
@@ -226,6 +228,7 @@ const Channel = () => {
                 //error
                 //TODO: View the error component
                 console.log("Error: ");
+                return null;
             }
             else
             {
@@ -235,7 +238,8 @@ const Channel = () => {
         catch(error)
         {
             //display an error message
-            console.log(error);
+            // console.log(error);
+            return null;
         }
     }
 
@@ -252,13 +256,12 @@ const Channel = () => {
                 const response = await getUserChannelProfile(username);
                 if (response.status < 200 || response.status >= 300)
                 {
-                    //error
                     //TODO: View the error component
                     console.log("Error: ");
                 }
                 else
                 {
-                    // console.log(response.data.data);
+                    console.log(response.data.data);
                     setChannelProfile(response.data.data);
                     setActiveButtonIndex(0);
                     setActiveContent(ribbon[0].content);
@@ -274,7 +277,25 @@ const Channel = () => {
                 setLoading(false);
             }
         })();
+
     },[]);
+
+    useEffect(()=>{
+        if(channelProfile)
+        {
+        //emit joinUserPage event to the backend
+        emitJoinUserPage(channelProfile._id);
+        console.log('User page joined');
+        }
+
+        return ()=>{ //clean up
+            if(channelProfile)
+            {
+                emitLeaveUserPage(channelProfile._id); //emit leaveUserpage event to the backend
+                console.log('User page left');
+            }
+        }
+    },[channelProfile])
 
     // useEffect(()=>{
 
@@ -304,21 +325,22 @@ const Channel = () => {
                     {/* avatar */}
                     <div>
                         <img 
-                        src={avatar} 
-                        className="h-[8rem] md:h-[9rem] lg:h-[10rem] rounded-full"
+                        src={channelProfile.avatar} 
+                        className="h-[8rem] aspect-1 md:h-[9rem] lg:h-[10rem] rounded-full"
                         alt="User Avatar"
                         />
                     </div>
                     {/* info */}
                     <div className='flex flex-1 flex-col gap-2 justify-center'>
                         {/* Channel Name */}
-                        <h1 className="font-bold text-[5vw] md:text-[2rem] lg:text-[2.5rem]">{channelName}</h1>
+                        <h1 className="font-bold text-[5vw] md:text-[2rem] lg:text-[2.5rem]">{channelProfile.channelName}</h1>
                         {/* username */}
-                        <h2 className='text-[3vw] sm:text-[1rem] md:text-[1.2rem] text-light-font_color_light dark:text-dark-font_color_dark'>@{Username}</h2>
+                        <h2 className='text-[3vw] sm:text-[1rem] md:text-[1.2rem] text-light-font_color_light dark:text-dark-font_color_dark'>@{channelProfile.username}</h2>
                         <div className='flex flex-row gap-4 text-[3vw] sm:text-[1rem] md:text-[1.2rem] text-light-font_color_light dark:text-dark-font_color_dark'>
                             {/* subscriber */}
-                            <h2>65 Subscribers</h2>
-                            <h2>14 Videos</h2>
+                            <h2>{channelProfile.subscribersCount} Subscribers</h2>
+                            <h2>{channelProfile.channelSubscribedCount} Subscribed</h2>
+                            <h2>{channelProfile.videosCount} Videos</h2>
                         </div>
                     </div>
                 </div>

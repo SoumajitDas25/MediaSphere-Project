@@ -1,7 +1,7 @@
 import Api from "./config/API";
 
 const routePrefix = 'users';
-const ApiInstance = new Api(routePrefix);
+const ApiInstance = new Api(routePrefix,true);
 const {api} = ApiInstance;
 
 const getUser = async ()=>{

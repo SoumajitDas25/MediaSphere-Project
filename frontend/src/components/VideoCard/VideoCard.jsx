@@ -56,6 +56,7 @@ const VideoCard = (
     //function to compute duration in hh:mm:ss format
     const computeDuration = (duration)=> {
 
+        // duration=Math.floor(duration);
         if (duration < 60) 
         {
             if(duration<10)
