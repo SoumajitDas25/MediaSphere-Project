@@ -5,13 +5,14 @@ import { useEffect, useState } from 'react';
 import { verifyAndGetUserThunk } from './slices/authSlice';
 import { setUser } from './slices/userSlice';
 import { Error } from './components';
+import {initializeSocketConnection,getSocket} from './sockets/socket.config';
 
 function App() {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [loading,setLoading] = useState(true);
-  const {user,error} = useSelector(state=>state.auth);
+  const {user,error,isloggedIn} = useSelector(state=>state.auth);
   const theme = useSelector(state=>state.theme.currentTheme);
   // const isloggedIn = useSelector(state=>state.auth.isloggedIn);
 
@@ -45,6 +46,10 @@ function App() {
   useEffect(()=>{
     dispatch(setUser(user)); //set the user state with the current user
   },[user]);
+
+  useEffect(() => {
+    initializeSocketConnection(); //intitialize socket connection upon app load
+  },[]);
 
   useEffect(()=>{
     if(theme === 'light')
