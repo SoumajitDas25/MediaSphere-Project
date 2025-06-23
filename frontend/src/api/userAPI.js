@@ -87,12 +87,12 @@ const updateAccountDetails = async(updatedData)=>{
     }
 }
 
-const updateAvatar = async({newAvatar})=>{
+const updateAvatar = async(newAvatar)=>{
     try
     {
         const reponse = await api(
             `/update-avatar`,
-            {avatar:newAvatar},
+            {avatar: newAvatar},
             'PATCH',
             {
                 'Content-Type': 'multipart/form-data'
@@ -106,12 +106,12 @@ const updateAvatar = async({newAvatar})=>{
     }
 }
 
-const updateCoverImage = async({newCoverImage})=>{
+const updateCoverImage = async(newCoverImage)=>{
     try
     {
         const reponse = await api(
             `/update-cover-image`,
-            {coverImage:newCoverImage},
+            {coverImage: newCoverImage},
             'PATCH',
             {
                 'Content-Type': 'multipart/form-data'

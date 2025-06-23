@@ -10,7 +10,7 @@ const Modal = ({
 }) => {
 
   return (
-    <BgFreezer className={`flex items-center justify-center px-4 sm:px-4 z-[70]`}>
+    <BgFreezer className={`flex items-center justify-center sm:px-4 z-[70]`}>
         <div className={`bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light rounded-lg shadow-lg flex-1 sm:flex-none ${className}`}>
 
           {/* header */}

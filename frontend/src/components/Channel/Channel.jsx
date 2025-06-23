@@ -1,25 +1,73 @@
-import React, { useEffect, useState } from 'react'
-import { SampleCoverImage,VideoThumbnail } from '../../assets/images'
-import { Button, ListContainer,Loader } from '..'
-import { useSelector } from 'react-redux'
+import { useEffect, useState } from 'react'
+import {CameraIcon,EditIcon} from '../../assets/icons'
+import { Button, ListContainer,Loader,ImageCropper } from '..'
+import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import { userAPI,videoAPI,tweetAPI,playlistAPI } from '../../api'
+import {setIsCropperOpened,setCropProperties,setCropReset,setCropLoading} from '../../slices/cropSlice'
 import {userEmitters} from '../../sockets/emitters'
 
 const Channel = () => {
 
     let {username} = useParams();
-    const {avatar,channelName,username:Username} = useSelector(state=>state.user.user);
+    const dispatch = useDispatch();
+    // const {avatar,channelName,username:Username} = useSelector(state=>state.user.user);
     const [channelProfile,setChannelProfile] = useState(null);
+    const [avatar,setAvatar] = useState(null);
+    const [coverImage,setCoverImage] = useState(null);
     // const [activeContentData,setActiveContentData] = useState(null);
     const [activeButtonIndex,setActiveButtonIndex] = useState(null);
     const [activeContent,setActiveContent] = useState(null);
     const [loading,setLoading] = useState(true);
-    const {getUserChannelProfile} = userAPI;
+    const {isCropperOpened,image:cropImage,aspectRatio:cropAspectRatio,cropSource,isCompleted:isCropCompleted,error:cropError} = useSelector(state=>state.crop);
+
+    const {getUserChannelProfile,updateAvatar,updateCoverImage} = userAPI;
     const {getUserVideos} = videoAPI;
     const {getUserTweets} = tweetAPI;
     const {getUserPlaylists} = playlistAPI;
     const {emitJoinUserPage,emitLeaveUserPage} = userEmitters;
+
+    const updateImageViaCropperHandler = (file,aspectRatio,cropSource) => {
+        //create temp Url
+        const tempUrl = URL.createObjectURL(file);
+
+        //dispatch crop actions
+        dispatch(setCropProperties({
+        image: tempUrl,
+        aspectRatio: aspectRatio,
+        cropSource: cropSource
+        })); 
+        dispatch(setIsCropperOpened(true));
+    }
+
+    const onCropComplete = async (croppedImage)=>{
+        console.log(croppedImage);
+
+        //enable loading
+        dispatch(setCropLoading(true));
+
+        //make the api call based on cropSource
+        let response;
+        switch(cropSource)
+        {
+            case 'avatar':
+                response = await updateAvatar(croppedImage);
+                setAvatar(response.data.data.avatar);
+                console.log('avatar api called');
+                break;
+
+            case 'cover-image':
+                response = await updateCoverImage(croppedImage);
+                setCoverImage(response.data.data.coverImage);
+                console.log('sample-cover api called');  
+                break; 
+            default:
+                console.log('no api called');
+        }
+
+        //reset the crop state
+        dispatch(setCropReset());
+    }
 
     // const videos = [
     //     {
@@ -263,6 +311,8 @@ const Channel = () => {
                 {
                     console.log(response.data.data);
                     setChannelProfile(response.data.data);
+                    setAvatar(response.data.data.avatar);
+                    setCoverImage(response.data.data.coverImage);
                     setActiveButtonIndex(0);
                     setActiveContent(ribbon[0].content);
                 }
@@ -313,22 +363,77 @@ const Channel = () => {
             :
             <div>
 
+                {/* Image Cropper */}
+                {(isCropperOpened && cropImage && cropAspectRatio && cropSource)? 
+                    <ImageCropper
+                    file={cropImage}
+                    aspect={cropAspectRatio}
+                    cropSource = {cropSource}
+                    onComplete={onCropComplete}
+                    />:''
+                }
+
                 {/* Cover Image */}
                 <div 
-                style={{backgroundImage: `url('${SampleCoverImage}')`}} 
-                className={`h-[13rem] overflow-hidden bg-cover bg-center`}>
+                style={{backgroundImage: `${coverImage?`url(${coverImage})`:'none'}`}} 
+                className={`w-full aspect-[4/1] overflow-hidden bg-cover bg-center relative ${coverImage?'':'bg-light-btn1_color dark:bg-dark-btn1_color'}`}
+                >
+                    {/* Update Cover Image Label*/}
+                    <label 
+                    htmlFor='update-cover-image'
+                    className='absolute bottom-0 right-0 bg-light-bg_light  dark:bg-dark-bg_dark text-light-font_color_dark  dark:text-dark-font_color_light text-[1rem] sm:text-[1.25rem] md:text-[1.5rem] lg:text-[2rem] px-4 py-2 lg:px-6 lg:py-4 rounded-tl-lg cursor-pointer' 
+                    >
+                        <input type="file" 
+                        accept="image/*"
+                        id="update-cover-image" 
+                        className="sr-only"
+                        onChange={(event)=>{
+                            if(event.target.value)
+                            {
+                                updateImageViaCropperHandler(event.target.files[0],4/1,'cover-image');
+
+                                //clear input value
+                                event.target.value=null;
+                                }
+                            } 
+                            }
+                        />
+                        <CameraIcon/>
+                    </label>
                     {/* <img src={SampleCoverImage} alt="" /> */}
                 </div>
 
                 {/* Info Section*/}
                 <div className="flex py-4 gap-4">
                     {/* avatar */}
-                    <div>
+                    <div className='relative'>
                         <img 
-                        src={channelProfile.avatar} 
+                        src={avatar} 
                         className="h-[8rem] aspect-1 md:h-[9rem] lg:h-[10rem] rounded-full"
                         alt="User Avatar"
                         />
+                        {/* Avatar Label*/}
+                        <label 
+                        htmlFor='update-avatar'
+                        className='absolute bottom-[5px] right-[5px] bg-light-bg_light  dark:bg-dark-bg_dark text-light-font_color_dark  dark:text-dark-font_color_light text-[1.25rem] md:text-[1.5rem] p-2  rounded-full cursor-pointer' 
+                        >
+                            <input type="file" 
+                            accept="image/*"
+                            id="update-avatar" 
+                            className="sr-only"
+                            onChange={(event)=>{
+                                if(event.target.value)
+                                {
+                                    updateImageViaCropperHandler(event.target.files[0],1,'avatar');
+
+                                    //clear input state
+                                    event.target.value=null;
+                                }
+                                } 
+                            }
+                            />
+                            <EditIcon/>
+                        </label>
                     </div>
                     {/* info */}
                     <div className='flex flex-1 flex-col gap-2 justify-center'>

@@ -1,5 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
-import {themeSlice,authSlice,userSlice,uploadSlice,messageSlice} from "../slices";
+import {themeSlice,authSlice,userSlice,uploadSlice,messageSlice,cropSlice} from "../slices";
 
 export const store = configureStore({
     reducer: {
@@ -7,6 +7,7 @@ export const store = configureStore({
         auth: authSlice,
         user: userSlice,
         upload: uploadSlice,
-        message:messageSlice
+        message:messageSlice,
+        crop: cropSlice
     }
 })

@@ -339,7 +339,7 @@ const updateUserAvatar = asyncHandler(async (req,res)=>{
             }
         },
         {new: true}
-    ).select("-password -refreshToken");
+    ).select("avatar");
     if(!user)
     {
         throw new ApiError(500,"Something went wrong while updating User Avatar");
@@ -359,7 +359,7 @@ const updateUserAvatar = asyncHandler(async (req,res)=>{
         new ApiResponse(
             200,
             {
-                data:user,
+                avatar:user.avatar,
                 isOldAvatarDeleted
             },
             "User Avatar updated Successfully"
@@ -394,7 +394,7 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
             }
         },
         {new: true}
-    ).select("-password -refreshToken");
+    ).select("coverImage");
     if(!user)
     {
         throw new ApiError(500,"Something went wrong while updating Cover Image");
@@ -419,7 +419,7 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
         new ApiResponse(
             200,
             {
-                data:user,
+                coverImage:user.coverImage,
                 isOldCoverImageDeleted
             },
             "Cover Image updated Successfully"

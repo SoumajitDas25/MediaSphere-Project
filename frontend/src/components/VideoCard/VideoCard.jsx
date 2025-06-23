@@ -1,7 +1,5 @@
-import React from 'react'
 import { NoAvatarIcon } from '../../assets/icons';
 import { useNavigate } from 'react-router-dom';
-import { VideoThumbnail } from '../../assets/images';
 
 const VideoCard = (
     {
@@ -178,7 +176,7 @@ const VideoCard = (
         {/* thumbnail */}
         <div className={`${viewType==='Grid'?'w-full':'h-full'} relative overflow-hidden`}>
             
-            <img className={`aspect-[8/5] ${viewType==='Grid'?'w-full':'h-full'} rounded-lg z-5`} src={thumbnail} alt="Playlist Thumbnail" />
+            <img className={`aspect-[8/5] ${viewType==='Grid'?'w-full':'h-full'} rounded-lg z-5`} src={thumbnail} alt="Video Thumbnail" />
 
             <div className="bg-black text-white absolute z-10 right-2 bottom-[5%] rounded-md px-2 text-[3.5vw] sm:text-[0.9rem]">
                 {computeDuration(duration)}

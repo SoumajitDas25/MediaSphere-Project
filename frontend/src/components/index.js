@@ -21,6 +21,7 @@ import BgFreezer from "./BgFreezer/BgFreezer";
 import Modal from "./Modal/Modal";
 import Uploader from "./Uploader/Uploader";
 import Message from "./Message/Message";
+import ImageCropper from "./ImageCropper/ImageCropper";
 
 export {
     Header,
@@ -45,5 +46,6 @@ export {
     BgFreezer,
     Modal,
     Uploader,
-    Message
+    Message,
+    ImageCropper
 }

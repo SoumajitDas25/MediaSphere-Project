@@ -26,8 +26,9 @@ import { IoCloseOutline } from "react-icons/io5";
 import { BsPlusLg } from "react-icons/bs";
 import { MdPostAdd } from "react-icons/md";
 import { TiTick } from "react-icons/ti";
-import NoUserIcon from "./user.png"
-
+import { FaCamera } from "react-icons/fa";
+import { MdEdit } from "react-icons/md";
+import NoUserIcon from "./user.png";
 
 export {
     HiOutlineHome as HomeIcon,
@@ -58,5 +59,7 @@ export {
     BsPlusLg as PlusIcon,
     MdPostAdd as CreateTweetIcon,
     TiTick as TickIcon,
+    FaCamera as CameraIcon,
+    MdEdit as EditIcon,
     NoUserIcon
 }
