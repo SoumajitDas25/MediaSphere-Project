@@ -23,6 +23,7 @@ const Header = (
   const isloggedIn = useSelector(state=>state.auth.isloggedIn);
   const currentTheme = useSelector(state=>state.theme.currentTheme);
   const user = useSelector(state=>state.user.user);
+  const avatar = useSelector(state=>state.user.user?.avatar);
   
   const expandSidebar = ()=>{ 
       setsidebarExpanded(sidebarExpanded=>!sidebarExpanded);
@@ -73,7 +74,7 @@ const Header = (
                   {
                     (isloggedIn && user)?
                     <img 
-                    src={user.avatar}
+                    src={avatar}
                     className="h-[7vw] aspect-1 sm:h-[2.5rem] rounded-[50%]"
                     />
                     :<LoginIcon/>
@@ -91,7 +92,7 @@ const Header = (
         {/* search bar */}
         <div className={`${isloggedIn?'flex justify-center':'hidden'}`}>
             
-            <div className="flex items-center justify-center rounded-[1.25rem] h-[10vw] sm:h-[2.5rem] w-[100%] sm:w-[90%] md:w-[80%] max-w-[38rem] border-light-bg_dark dark:border-dark-btn1_color border-[0.15rem]">
+            <div className="flex items-center justify-center rounded-[1.25rem] h-[10vw] sm:h-[2.5rem] w-[100%] sm:w-[90%] md:w-[80%] max-w-[38rem] border-dark-font_color_dark dark:border-dark-btn1_color border-[0.15rem]">
                 <input
                 type="text" 
                 className="rounded-l-[1.25rem] bg-light-bg_light dark:bg-dark-bg_light text-light-font_color_dark dark:text-dark-font_color_light outline-none h-full w-full max-w-[34rem] px-[1.375rem] text-[4vw] sm:text-[1rem]" 
@@ -99,7 +100,7 @@ const Header = (
                 />
                 <button 
                 type="button"
-                className="max-w-[4rem] w-[17vw] h-full bg-light-bg_dark dark:bg-dark-btn1_color rounded-r-[1.25rem] px-[1.25rem] flex items-center">
+                className="max-w-[4rem] w-[17vw] h-full bg-dark-font_color_dark dark:bg-dark-btn1_color rounded-r-[1.25rem] px-[1.25rem] flex items-center">
                   <span className="text-[6vw] sm:text-[1.7rem]">
                     <SearchIcon/>
                   </span>

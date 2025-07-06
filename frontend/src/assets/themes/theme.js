@@ -1,6 +1,6 @@
 const lightTheme = {
     bg_light: '#FFFFFF',
-    bg_dark: '#D9D9D9',
+    bg_dark: '#eeeeee',
     btn1_color: '#7B7A7A',
     font_color_light: '#7B7A7A',
     font_color_dark: '#000000'

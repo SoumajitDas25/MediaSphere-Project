@@ -444,19 +444,19 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
             }
         },
         {
-            $lookup: {  //get those subscription docs where channel = userid i.e., (list of subscribers)
-                from: "subscriptions",
+            $lookup: {  //get those connection docs where channel = userid i.e., (list of subscribers)
+                from: "connections",
                 localField: "_id",
                 foreignField: "channel",
                 as:"subscribers"
             }
         },
         {
-            $lookup: {  //get those subscription docs where subscribers = userid i.e., (list of channels user has subscribed )
-                from: "subscriptions",
+            $lookup: {  //get those connection docs where subscribers = userid i.e., (list of channels user has subscribed )
+                from: "connections",
                 localField: "_id",
                 foreignField: "subscriber",
-                as:"subscribedTo"
+                as:"subscriptions"
             }
         },
         {
@@ -469,11 +469,11 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
         },
         {
             $addFields: {
-                subscribersCount: { //calculate the size of subscribers field
+                subscriberCount: { //calculate the size of subscribers field
                     $size: "$subscribers"
                 },
-                channelSubscribedCount: { //calculate the size of subscribedTo field
-                    $size: "$subscribedTo"
+                subscriptionCount: { //calculate the size of subscribedTo field
+                    $size: "$subscriptions"
                 },
                 isSubscribed: { //check whether user(visiter) has subscribed to the owner's channel
                     $cond: {
@@ -494,8 +494,8 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
                 email: 1,
                 avatar: 1,
                 coverImage: 1,
-                subscribersCount: 1,
-                channelSubscribedCount: 1,
+                subscriberCount: 1,
+                subscriptionCount: 1,
                 isSubscribed: 1,
                 videosCount: 1
             }
@@ -519,71 +519,194 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
 })
 
 const getWatchHistory = asyncHandler(async (req,res)=>{
-    
-    //get watch history details & return in an obj
-    const user = await User.aggregate([
+
+    let data;
+    //fetch page & limit from req query
+    const {page = 1, limit = 9} = req.query;
+
+    //get all watch history for the user
+    const totalWatchHistory = req.user?.watchHistory;
+    if(!totalWatchHistory)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total Watch History");
+    }
+    if(totalWatchHistory.length < 1)
+    {
+        data={
+            totalWatchHistory:0,
+            paginatedContent:null,
+            totalPages:0
+        }
+    }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalWatchHistory.length / Number(limit));
+        if(totalPages < Number(page))
         {
-            $match: { //find the user doc by id
-                _id: new mongoose.Types.ObjectId(String(req.user?._id))
-            }
-        },
-        {
-            $lookup: { //get the video docs by their ids contained in this watchHistory[]
-                from: "videos",
-                localField: "watchHistory",
-                foreignField: "_id",
-                as: "watchedVideos",
-                pipeline: [
-                    {
-                        $lookup: { //get the owner obj by id
-                            from: "users",
-                            localField: "owner",
-                            foreignField: "_id",
-                            as: "owner",
-                            pipeline: [
-                                {
-                                    $project: { //return only these fields
-                                        channelName: 1,
-                                        username: 1,
-                                        avatar: 1,
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
+
+        //get paginated watch history for the user
+        const user = await User.aggregate([
+            {
+                $match: { //find the user doc by id
+                    _id: new mongoose.Types.ObjectId(String(req.user?._id))
+                }
+            },
+            {
+                $lookup: { //get the video docs by their ids contained in this watchHistory[]
+                    from: "videos",
+                    localField: "watchHistory",
+                    foreignField: "_id",
+                    as: "watchedVideos",
+                    pipeline: [
+                        {
+                            $lookup: { //get the owner obj by id
+                                from: "users",
+                                localField: "owner",
+                                foreignField: "_id",
+                                as: "owner",
+                                pipeline: [
+                                    {
+                                        $project: { //return only these fields
+                                            channelName: 1,
+                                            username: 1,
+                                            avatar: 1,
+                                        }
                                     }
+                                ]
+                            }
+                        },
+                        {
+                            $addFields: { //store the first element(obj) of owner[] field
+                                owner: {
+                                    $first: "$owner"
                                 }
-                            ]
+                            }
                         }
-                    },
-                    {
-                        $addFields: { //store the first element(obj) of owner[] field
-                            owner: {
-                                $first: "$owner"
+                    ]
+                }
+            },
+            {
+                $addFields: { //Reorder watchedVideos to match watchHistory[]
+                    watchedVideos: {
+                        $map: {
+                            input: "$watchHistory",
+                            as: "vidId",
+                            in: {
+                                $arrayElemAt: [
+                                    "$watchedVideos",
+                                    {
+                                        $indexOfArray: [
+                                            "$watchedVideos._id","$$vidId"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
-                ]
+                }
+            },
+            {
+                $project: {
+                    watchHistory: 1,
+                    watchedVideos: {
+                        $slice: ["$watchedVideos",(Number(page) - 1) * Number(limit),Number(limit)]
+                    }
+                }
             }
-        },
+        ]);
+        if(!user)
         {
-            $project: {
-                watchHistory: 1,
-                watchedVideos: 1
-            }
+            throw new ApiError(500,"Something went wrong while fetching watch history");
         }
-    ]);
-    if(!user)
-    {
-        throw new ApiError(500,"Something went wrong while fetching watch history");
-    }
 
-    //sort the watchHistory field of user[0] in the order of obj ids stored in watchVidoes[] of user[0]
-    const sortedWatchHistory = user[0].watchHistory.map(
-        videoId => user[0].watchedVideos.find(
-            video => video._id.equals(videoId)
-        )
-    );
+        data={
+            totalWatchHistory: totalWatchHistory.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:user[0].watchedVideos,
+        };
+    }
 
     //send the sorted watch history[] as response
     res.status(200)
     .json(
-        new ApiResponse(200,sortedWatchHistory,"Watch History fetched Sucessfully")
+        new ApiResponse(
+            200,
+            data,
+            "Paginated Watch History fetched Sucessfully"
+        )
+    );
+})
+
+const deleteWatchHistory = asyncHandler(async(req,res)=>{
+    
+    //update watchHistory[] in user doc to empty
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                watchHistory:[]
+            }
+        },
+        {new: true}
+    ).select("watchHistory");
+    if(updatedUser.watchHistory.length!==0){
+        throw new ApiError(500,"Something went wrong while deleting watchHistory");
+    }
+
+    //send a success message as response
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                isWatchHistoryDeleted:true
+            },
+            "Watch History deleted successfully"
+        )
+    );
+})
+
+const deleteVideoFromWatchHistory =  asyncHandler(async(req,res)=>{
+
+    //fetch video id from req params
+    const {videoId} = req.params;
+    if(!videoId)
+    {
+        throw new ApiError(400,"Video ID is missing");
+    }
+
+    //get the user doc
+    const user = await User.findById(req.user?._id).select("watchHistory");
+    if(!user)
+    {
+        throw new ApiError(500,"Something went wrong while deleting video from watch history");
+    }
+    
+    //exclude the videoId from watchHistory[] field of user doc
+    user.watchHistory = user.watchHistory.filter(id=>String(id)!==String(videoId));
+
+    //save the user doc
+    const updatedUser = await user.save();
+    if(!updatedUser)
+    {
+        throw new ApiError(500,"Something went wrong while deleting video from watch history");
+    }
+    // console.log(updatedUser);
+
+    //send a success message as response
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                isVideoDeletedFromWatchHistory:true
+            },
+            "Video deleted from Watch History successfully"
+        )
     );
 
 })
@@ -599,5 +722,7 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
-    getWatchHistory
+    getWatchHistory,
+    deleteWatchHistory,
+    deleteVideoFromWatchHistory
 };

@@ -153,7 +153,7 @@ const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
             throw new ApiError(400,"Page Number exceeds Max Page Number");
         }
 
-        const paginatedUserVideos = await Video.aggregate([
+        const paginatedVideos = await Video.aggregate([
             {
                 $match:{ //get the user videos
                     owner: new mongoose.Types.ObjectId(String(userId))
@@ -196,7 +196,7 @@ const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
             }
         ]);
 
-        if(!paginatedUserVideos)
+        if(!paginatedVideos)
         {
             throw new ApiError(500,"Something went wrong while fetching User Video documents")
         }
@@ -205,7 +205,7 @@ const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
             totalVideos: totalVideos.length,
             currentPage: Number(page),
             totalPages,
-            paginatedContent:paginatedUserVideos,
+            paginatedContent:paginatedVideos,
         };
     }
     
@@ -246,7 +246,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         deleteTempFiles(req.files);
         throw new ApiError(400,"Video title & description are required");
     }
-
+    
     //upload to cloudinary with progress tracking
     const videoFile = await fileUploadWithProgressTracking(videoLocalPath,req.files.videoFile[0].size,1,assetFolderName,req.socketId);     
     if(!videoFile) //upload unsuccessful 
@@ -273,7 +273,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while creating video doc entry in db");
     }
 
-    //send the refreshContentList event to the client
+    //send the uploadComplete event to the client
     const {emitUploadComplete} = uploadEmitters;
     emitUploadComplete(req.user._id);
 
@@ -287,7 +287,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
     
     //fetch videoId from req params
-    const { videoId } = req.params
+    const { videoId } = req.params;
     if(!isValidObjectId(videoId))
     {
         throw new ApiError(400,"Invalid Video Id");

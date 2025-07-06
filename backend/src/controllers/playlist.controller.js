@@ -42,6 +42,7 @@ const createPlaylist = asyncHandler(async (req, res) => {
 
 const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
 
+    let data;
     //fetch page & limit from req query
     const {page = 1, limit = 9} = req.query;
 
@@ -69,76 +70,93 @@ const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
     {
         throw new ApiError(500,"Something went wrong while fetching Total User Playlists");
     }
-
-    //check if page no. exceeds max page no.
-    let totalPages = Math.ceil(totalPlaylists.length / Number(limit));
-    if(totalPages < Number(page))
+    if(totalPlaylists.length < 1)
     {
-        throw new ApiError(400,"Page Number exceeds Max Page Number");
+        data={
+            totalPlaylists:0,
+            paginatedContent:null,
+            totalPages:0
+        }
     }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalPlaylists.length / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
 
-    //get paginated playlists for the user
-    const paginatedPlaylists = await Playlist.aggregate([
-        {
-            $match: { //get the user playlist docs
-                owner: new mongoose.Types.ObjectId(String(userId))
-            }
-        },
-        {   //No of docs to skip
-            $skip: (Number(page) - 1) * Number(limit)
-        },
-        {   //Max No of docs to be fetched
-            $limit: Number(limit)
-        },
-        {
-            $lookup: { //get the video docs in the playlist
-                from: "videos",
-                localField: "videos",
-                foreignField: "_id",
-                as: "videos"
-            }
-        },
-        { 
-           $addFields: { //count the videos docs in the playlists
-                videosCount: {
-                    $size: "$videos" 
+        //get paginated playlists for the user
+        const paginatedPlaylists = await Playlist.aggregate([
+            {
+                $match: { //get the user playlist docs
+                    owner: new mongoose.Types.ObjectId(String(userId))
                 }
-           }
-        },
-        {
-            $addFields: { //add the owner info to each doc
-                owner: {
-                    _id: user._id,
-                    username: user.username,
-                    channelName: user.channelName,
-                    avatar: user.avatar
+            },
+            {   //No of docs to skip
+                $skip: (Number(page) - 1) * Number(limit)
+            },
+            {   //Max No of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $lookup: { //get the video docs in the playlist
+                    from: "videos",
+                    localField: "videos",
+                    foreignField: "_id",
+                    as: "videos"
                 }
+            },
+            { 
+            $addFields: { //count the videos docs in the playlists
+                    videosCount: {
+                        $size: "$videos" 
+                    }
             }
-        },
-        {
-            $addFields:{ //to store the thumbnail of first video obj from vidoes[]
-                thumbnail: {
-                    $cond: {
-                        if: { 
-                            $gt: [{ $size: "$videos" }, 0] 
-                        }, // Check if the videos array has at least one video doc
-                        then: { 
-                            $first: "$videos.thumbnail"
-                        }, // Get the thumbnail of the first video doc
-                        else: null // Set to null if no video docs are found
+            },
+            {
+                $addFields: { //add the owner info to each doc
+                    owner: {
+                        _id: user._id,
+                        username: user.username,
+                        channelName: user.channelName,
+                        avatar: user.avatar
                     }
                 }
+            },
+            {
+                $addFields:{ //to store the thumbnail of first video obj from vidoes[]
+                    thumbnail: {
+                        $cond: {
+                            if: { 
+                                $gt: [{ $size: "$videos" }, 0] 
+                            }, // Check if the videos array has at least one video doc
+                            then: { 
+                                $first: "$videos.thumbnail"
+                            }, // Get the thumbnail of the first video doc
+                            else: null // Set to null if no video docs are found
+                        }
+                    }
+                }
+            },
+            {
+                $project:{ //exclude the videos[] from each doc
+                    videos: 0 
+                }
             }
-        },
+        ]);
+        if(!paginatedPlaylists)
         {
-            $project:{ //exclude the videos[] from each doc
-                videos: 0 
-            }
+            throw new ApiError(500,"Something went wrong while fetching playlist documents");
         }
-    ]);
-    if(!paginatedPlaylists)
-    {
-        throw new ApiError(500,"Something went wrong while fetching playlist documents");
+
+        data={
+            totalPlaylists: totalPlaylists.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedPlaylists,
+        };
     }
 
     //send the paginatedPlaylists[] as response
@@ -146,12 +164,7 @@ const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
     .json(
         new ApiResponse(
             200,
-            {
-                totalPlaylists: totalPlaylists.length,
-                currentPage: Number(page),
-                totalPages,
-                paginatedContent:paginatedPlaylists
-            },
+            data,
             "Paginated User Playlists fetched Successfully"
         )
     );

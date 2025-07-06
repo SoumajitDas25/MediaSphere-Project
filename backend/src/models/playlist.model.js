@@ -9,6 +9,11 @@ const playlistSchema = new Schema({
         type: String,
         required: true
     },
+    visibility: {
+        type: String,
+        enum: ['public','private'],
+        default: 'public'
+    },
     videos: [
         {
             type: Schema.Types.ObjectId,

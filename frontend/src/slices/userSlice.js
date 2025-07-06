@@ -55,6 +55,12 @@ const userSlice = createSlice({
      reducers:{
         setUser: (state,action) =>{
             state.user = action.payload;
+        },
+        setAvatar: (state,action) =>{
+            state.user.avatar = action.payload;
+        },
+        setCoverImage: (state,action) =>{
+            state.user.coverImage = action.payload;
         }
      },
      extraReducers: (builder)=>{
@@ -107,5 +113,5 @@ const userSlice = createSlice({
      }
 });
 
-export const {setUser} = userSlice.actions;
+export const {setUser,setAvatar,setCoverImage} = userSlice.actions;
 export default userSlice.reducer;

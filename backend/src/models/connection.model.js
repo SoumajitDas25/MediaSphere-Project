@@ -1,6 +1,6 @@
 import { model, Schema } from "mongoose";
 
-const subscriptionSchema = new Schema({
+const connectionSchema = new Schema({
     subscriber: {  //the user who is subscribing 
         type: Schema.Types.ObjectId,
         ref: "User"
@@ -11,4 +11,4 @@ const subscriptionSchema = new Schema({
     }
 },{timestamps:true});
 
-export const Subscription = model('Subscription',subscriptionSchema);
+export const Connection = model('Connection',connectionSchema);

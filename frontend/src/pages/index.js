@@ -6,6 +6,9 @@ import Video from "./Video.jsx";
 import PageNotFound from "./PageNotFound.jsx";
 import UserChannel from "./UserChannel.jsx";
 import Playlist from "./Playlist.jsx";
+import WatchHistory from "./WatchHistory.jsx";
+import Connections from "./Connections.jsx";
+import MyPlaylist from "./MyPlaylist.jsx";
 
 export {
     Home,
@@ -15,5 +18,8 @@ export {
     Video,
     PageNotFound,
     UserChannel,
-    Playlist
+    Playlist,
+    WatchHistory,
+    Connections,
+    MyPlaylist
 }

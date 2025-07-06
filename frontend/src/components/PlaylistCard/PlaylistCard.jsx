@@ -3,14 +3,20 @@ import { PlaylistIcon } from '../../assets/icons';
 import { useNavigate } from 'react-router-dom';
 
 const PlaylistCard = ({
-    _id,
-    thumbnail="",
-    name="",
-    videosCount=0,
-    owner,
-    createdAt="",
-    updatedAt=""
+    data,
+    viewType = "Grid",
+    extraElements
 }) => {
+
+    const {
+        _id,
+        thumbnail="",
+        name="",
+        videosCount=0,
+        owner,
+        createdAt="",
+        updatedAt=""
+    } = data;
 
     const navigate = useNavigate();
 
@@ -81,7 +87,12 @@ const PlaylistCard = ({
             {/* Video Info*/}
             <div className="col-span-full row-span-2 grid grid-cols-12 overflow-hidden p-2 gap-2">
                 {/* avatar */}
-                <div className="col-span-2 overflow-hidden flex justify-center items-start">
+                <div className="col-span-2 overflow-hidden flex justify-center items-start cursor-pointer" 
+                onClick={(event)=>{
+                    event.stopPropagation();
+                    navigate(`/channel/@${owner.username}`);
+                }}
+                >
                     {
                         owner && owner.avatar?
                         <img 
@@ -105,7 +116,12 @@ const PlaylistCard = ({
 
                     <div className="row-span-1 text-light-font_color_dark dark:text-dark-font_color_dark text-[3.75vw] sm:text-[0.85rem] md:text-[0.7rem] lg:text-[0.65rem] xl:text-[0.85rem] flex flex-col justify-center">
                         {/* Channel Name */}
-                        <h3>
+                        <h3 className='cursor-pointer' 
+                        onClick={(event)=>{
+                            event.stopPropagation();
+                            navigate(`/channel/@${owner.username}`);
+                        }}
+                        >
                             {owner && owner.channelName}
                         </h3>
                         {/* timestamp */}

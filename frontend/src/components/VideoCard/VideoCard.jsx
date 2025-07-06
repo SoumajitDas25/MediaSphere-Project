@@ -1,8 +1,14 @@
 import { NoAvatarIcon } from '../../assets/icons';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-const VideoCard = (
-    {
+const VideoCard = ({
+        data,
+        viewType = "Grid",
+        extraElements
+}) => {
+
+    const navigate = useNavigate();
+    const {
         _id,
         thumbnail="",
         title="",
@@ -10,11 +16,7 @@ const VideoCard = (
         owner,
         duration='0:00',
         createdAt="",
-        viewType = "Grid"
-    }
-) => {
-
-    const navigate = useNavigate();
+    } = data;
 
     // Function to calculate time difference
     const timeSince = (date)=> {
@@ -171,7 +173,7 @@ const VideoCard = (
     // </div>
     <div 
     className={`bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light flex  ${viewType==='Grid'?'flex-col':'flex-row h-[25vw] sm:h-[18vw] lg:h-[10vw] max-h-[150px]'} gap-2 rounded-lg overflow-hidden w-full`} 
-    onClick={()=>navigate('/video')}>
+    onClick={()=>navigate(`/video/${_id}`)}>
 
         {/* thumbnail */}
         <div className={`${viewType==='Grid'?'w-full':'h-full'} relative overflow-hidden`}>
@@ -187,7 +189,10 @@ const VideoCard = (
         <div className={`${viewType==='Grid'?'w-full':''} grid grid-cols-12 overflow-hidden p-2 gap-2 flex-1`}>
             {/* avatar - Grid View*/}
             {
-                viewType==='Grid' && (<div className="col-span-2 overflow-hidden flex justify-center items-start">
+                viewType==='Grid' && (<div className="col-span-2 overflow-hidden flex justify-center items-start cursor-pointer" onClick={(event)=>{
+                    event.stopPropagation();
+                    navigate(`/channel/@${owner.username}`);
+                }}>
                 {
                     owner && owner.avatar?
                     <img 
@@ -231,7 +236,12 @@ const VideoCard = (
                             // </div>)
                         }
                         {/* Channel Name */}
-                        <h3 className='flex items-center'>
+                        <h3 className='flex items-center cursor-pointer' 
+                        onClick={(event)=>{
+                            event.stopPropagation();
+                            navigate(`/channel/@${owner.username}`);
+                        }}
+                        >
                             {owner && owner.channelName}
                         </h3>
                     </div>
@@ -247,6 +257,9 @@ const VideoCard = (
                 </div>
             </div>
         </div>
+
+        {/* Extra Elements */}
+        {extraElements && extraElements(_id)}
     </div>
   )
 }

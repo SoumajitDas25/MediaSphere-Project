@@ -1,5 +1,5 @@
 import React from 'react'
-import {ListContainer} from '../components'
+import {Heading, ListContainer} from '../components'
 import {VideoThumbnail} from "../assets/images"
 
 const Home = () => {
@@ -71,7 +71,9 @@ const Home = () => {
     // ]
 
   return (
-          <ListContainer  type='Video'/>
+    <div>
+      <Heading className='py-2'>Home</Heading>
+    </div>  
   )
 }
 

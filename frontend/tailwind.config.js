@@ -21,6 +21,9 @@ export default {
         light: lightTheme,
         dark: darkTheme,
         color: colors
+      },
+      boxShadow: {
+        'custom': '0px 0px 10px var(--tw-shadow-color)',
       }
     },
   },

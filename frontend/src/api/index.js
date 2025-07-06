@@ -4,6 +4,7 @@ import videoAPI from "./videoAPI";
 import tweetAPI from "./tweetAPI";
 import playlistAPI from "./playlistAPI";
 import socketAPI from "./socketAPI";
+import connectionAPI from "./connectionAPI";
 
 export {
     authAPI,
@@ -11,5 +12,6 @@ export {
     videoAPI,
     tweetAPI,
     playlistAPI,
-    socketAPI
+    socketAPI,
+    connectionAPI
 }

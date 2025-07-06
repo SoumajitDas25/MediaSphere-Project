@@ -3,17 +3,22 @@ import { LikeIcon,CommentIcon, LikedIcon } from "../../assets/icons";
 import { useNavigate } from 'react-router-dom';
 
 const TweetCard = ({
-    _id,
-    owner,
-    content,
-    likesCount,
-    commentsCount,
-    isLiked,
-    createdAt,
-    updatedAt
+    data,
+    viewType = "Grid",
+    extraElements
 }) => {
 
     const navigate = useNavigate();
+    const {
+        _id,
+        owner,
+        content,
+        likesCount,
+        commentsCount,
+        isLiked,
+        createdAt,
+        updatedAt
+    } = data;
 
     // Function to calculate time difference
     function timeSince(date) 
@@ -57,7 +62,12 @@ const TweetCard = ({
         >
             
             {/* avatar */}
-            <div className="overflow-hidden flex justify-center items-start">
+            <div className="overflow-hidden flex justify-center items-start cursor-pointer" 
+            onClick={(event)=>{
+                event.stopPropagation();
+                navigate(`/channel/@${owner.username}`);
+            }}
+            >
                 {
                     owner && owner.avatar?
                     <img 
@@ -76,7 +86,12 @@ const TweetCard = ({
             <div className="w-full flex flex-col justify-center gap-4">
                 <h4 className="flex items-center gap-x-2 text-[3.5vw] sm:text-[0.75rem] md:text-[1rem]">
                     {/* Channel Name */}
-                    <span className="font-semibold">
+                    <span className="font-semibold cursor-pointer" 
+                    onClick={(event)=>{
+                        event.stopPropagation();
+                        navigate(`/channel/@${owner.username}`);
+                    }}
+                    >
                         {owner && owner.channelName}
                     </span>
                     {/* timestamp */}

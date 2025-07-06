@@ -53,7 +53,24 @@ const publishVideo = async(uploadData,setProgress)=>{
     }
 }
 
+const getVideoById = async (videoId)=>{
+    try
+    {
+        const response =  await api(
+            `/${videoId}`,
+            {},
+            'GET'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 export default {
     getUserVideos,
-    publishVideo
+    publishVideo,
+    getVideoById
 }

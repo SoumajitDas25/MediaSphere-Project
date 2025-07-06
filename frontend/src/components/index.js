@@ -13,6 +13,7 @@ import ListContainer from "./ListContainer";
 import VideoCard from "./VideoCard/VideoCard";
 import TweetCard from "./TweetCard/TweetCard";
 import PlaylistCard from "./PlaylistCard/PlaylistCard";
+import ChannelCard from "./ChannelCard/ChannelCard";
 import ContentLoader from "./Loader/ContentLoader";
 import UploadVideoModal from "./UploadVideo/UploadVideoModal";
 import CreateTweetModal from "./CreateTweetModal/CreateTweetModal";
@@ -22,6 +23,8 @@ import Modal from "./Modal/Modal";
 import Uploader from "./Uploader/Uploader";
 import Message from "./Message/Message";
 import ImageCropper from "./ImageCropper/ImageCropper";
+import Heading from "./Heading";
+
 
 export {
     Header,
@@ -40,6 +43,7 @@ export {
     VideoCard,
     TweetCard,
     PlaylistCard,
+    ChannelCard,
     UploadVideoModal,
     CreateTweetModal,
     PublishButton,
@@ -47,5 +51,6 @@ export {
     Modal,
     Uploader,
     Message,
-    ImageCropper
+    ImageCropper,
+    Heading
 }

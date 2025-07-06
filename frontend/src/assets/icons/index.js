@@ -28,6 +28,8 @@ import { MdPostAdd } from "react-icons/md";
 import { TiTick } from "react-icons/ti";
 import { FaCamera } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
+import { FaRegTrashAlt } from "react-icons/fa";
+import { MdOutlineSpaceDashboard } from "react-icons/md";
 import NoUserIcon from "./user.png";
 
 export {
@@ -61,5 +63,7 @@ export {
     TiTick as TickIcon,
     FaCamera as CameraIcon,
     MdEdit as EditIcon,
+    FaRegTrashAlt as DeleteIcon,
+    MdOutlineSpaceDashboard as DashboardIcon,
     NoUserIcon
 }

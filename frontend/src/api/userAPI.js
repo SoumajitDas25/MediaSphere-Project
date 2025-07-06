@@ -125,13 +125,48 @@ const updateCoverImage = async(newCoverImage)=>{
     }
 }
 
-const getWatchHistory = async()=>{
+const getWatchHistory = async(page,limit)=>{
     try
     {
         const reponse = await api(
-            `/get-watch-history`,
-            {},
+            `/watch-history`,
+            { //will be converted to query params
+                page:page,
+                limit:limit
+            },
             'GET'
+        );
+        return reponse;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const deleteWatchHistory = async()=>{
+    try
+    {
+        const reponse = await api(
+            `/watch-history`,
+            {},
+            'DELETE'
+        );
+        return reponse;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const deleteVideoFromWatchHistory = async(videoId)=>{
+    try
+    {
+        const reponse = await api(
+            `/watch-history/${videoId}`,
+            {},
+            'DELETE'
         );
         return reponse;
     }
@@ -149,5 +184,7 @@ export default {
     updateAccountDetails,
     updateAvatar,
     updateCoverImage,
-    getWatchHistory
+    getWatchHistory,
+    deleteWatchHistory,
+    deleteVideoFromWatchHistory
 }

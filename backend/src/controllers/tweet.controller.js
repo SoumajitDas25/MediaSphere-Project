@@ -39,6 +39,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
 
+    let data;
     //fetch page & limit from req query
     const {page = 1, limit = 9} = req.query;
 
@@ -66,106 +67,123 @@ const getUserTweets = asyncHandler(async (req, res) => {
     {
         throw new ApiError(500,"Something went wrong while fetching Total Tweets");
     }
-
-    //check if page no. exceeds max page no.
-    let totalPages = Math.ceil(totalTweets.length / Number(limit));
-    if(totalPages < Number(page))
+    if(totalTweets.length < 1)
     {
-        throw new ApiError(400,"Page Number exceeds Max Page Number");
+        data={
+            totalTweets:0,
+            paginatedContent:null,
+            totalPages:0
+        }
     }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalTweets.length / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
 
-    //get paginated tweets for the user
-    const paginatedTweets = await Tweet.aggregate([
-        {
-            $match: { //get all tweet docs with owner as user
-                owner: new mongoose.Types.ObjectId(String(userId))
-            }
-        },
-        {   //No of docs to skip
-            $skip: (Number(page) - 1) * Number(limit)
-        },
-        {   //Max No of docs to be fetched
-            $limit: Number(limit)
-        },
-        {
-            $lookup: { //get the like doc of the tweet for the user if it exists
-                from: "likes",
-                let: { tweetId: "$_id" }, // Reference the current tweetId
-                pipeline: [
-                    {
-                        $match:{
-                            $expr: {
-                                $and: [
-                                    { 
-                                        $eq: ["$tweet", "$$tweetId"] 
-                                    },
-                                    { 
-                                        $eq: ["$likedBy", new mongoose.Types.ObjectId(String(req.user._id))] 
-                                    } 
-                                ]
+        //get paginated tweets for the user
+        const paginatedTweets = await Tweet.aggregate([
+            {
+                $match: { //get all tweet docs with owner as user
+                    owner: new mongoose.Types.ObjectId(String(userId))
+                }
+            },
+            {   //No of docs to skip
+                $skip: (Number(page) - 1) * Number(limit)
+            },
+            {   //Max No of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $lookup: { //get the like doc of the tweet for the user if it exists
+                    from: "likes",
+                    let: { tweetId: "$_id" }, // Reference the current tweetId
+                    pipeline: [
+                        {
+                            $match:{
+                                $expr: {
+                                    $and: [
+                                        { 
+                                            $eq: ["$tweet", "$$tweetId"] 
+                                        },
+                                        { 
+                                            $eq: ["$likedBy", new mongoose.Types.ObjectId(String(req.user._id))] 
+                                        } 
+                                    ]
+                                }
                             }
                         }
+                    ],
+                    as: "isLikedData",
+                }
+            },
+            {
+                $addFields: { //if isLikedData[] contains data, then add isliked as true else false
+                    isLiked: {
+                        $cond: { 
+                            if: { 
+                                $gt: [
+                                    { $size: "$isLikedData" },
+                                    0
+                                ] 
+                            }, 
+                            then: true, 
+                            else: false 
+                        }
                     }
-                ],
-                as: "isLikedData",
-            }
-        },
-        {
-            $addFields: { //if isLikedData[] contains data, then add isliked as true else false
-                isLiked: {
-                    $cond: { 
-                        if: { 
-                            $gt: [
-                                { $size: "$isLikedData" },
-                                0
-                            ] 
-                        }, 
-                        then: true, 
-                        else: false 
+                }
+            },
+            {
+                $addFields: { //add the owner info to each document
+                    owner: {
+                        _id: user._id,
+                        username: user.username,
+                        channelName: user.channelName,
+                        avatar: user.avatar
                     }
                 }
-            }
-        },
-        {
-            $addFields: { //add the owner info to each document
-                owner: {
-                    _id: user._id,
-                    username: user.username,
-                    channelName: user.channelName,
-                    avatar: user.avatar
+            },
+            {
+                $lookup: { //get all comment docs for each of the tweet doc
+                    from: "comments",
+                    localField: "_id",
+                    foreignField: "tweet",
+                    as: "commentsCount"
+                }
+            },
+            {
+                $addFields: { //calcuate & store the no of comment docs for each of the tweet doc
+                    commentsCount: {
+                        $size: "$commentsCount"
+                    }
+                }
+            },
+            {
+                $project: {
+                    content: 1,
+                    owner: 1,
+                    isLiked: 1,
+                    likesCount: 1,
+                    commentsCount: 1,
+                    createdAt: 1,
+                    updatedAt: 1
                 }
             }
-        },
+        ]);
+        if(!paginatedTweets)
         {
-            $lookup: { //get all comment docs for each of the tweet doc
-                from: "comments",
-                localField: "_id",
-                foreignField: "tweet",
-                as: "commentsCount"
-            }
-        },
-        {
-            $addFields: { //calcuate & store the no of comment docs for each of the tweet doc
-                commentsCount: {
-                    $size: "$commentsCount"
-                }
-            }
-        },
-        {
-            $project: {
-                content: 1,
-                owner: 1,
-                isLiked: 1,
-                likesCount: 1,
-                commentsCount: 1,
-                createdAt: 1,
-                updatedAt: 1
-            }
+            throw new ApiError(500,"Something went wrong while fetching tweet documents")
         }
-    ]);
-    if(!paginatedTweets)
-    {
-        throw new ApiError(500,"Something went wrong while fetching tweet documents")
+
+        data={
+            totalTweets: totalTweets.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedTweets,
+        };
     }
 
     //send the paginatedTweets[] as response
@@ -173,12 +191,7 @@ const getUserTweets = asyncHandler(async (req, res) => {
     .json(
         new ApiResponse(
             200,
-            {
-                totalTweets: totalTweets.length,
-                currentPage: Number(page),
-                totalPages,
-                paginatedContent:paginatedTweets,
-            },
+            data,
             "Paginated User Tweets fetched Successfully"
         )
     );

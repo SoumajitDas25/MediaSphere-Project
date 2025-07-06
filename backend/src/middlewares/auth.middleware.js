@@ -33,6 +33,12 @@ const verifyJWT = asyncHandler(async(req , res , next)=>{
     //add the user document to req object
     req.user=user;
 
+    //add the socketId to req object
+    if(req.header("x-socket-id"))
+    {
+        req.socketId = req.header("x-socket-id");
+    }
+
     next();
 });
 

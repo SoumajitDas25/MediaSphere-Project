@@ -1,14 +1,9 @@
-import React from "react";
-import { Loader, LoginForm } from "../components";
-import {  useSelector } from "react-redux";
+import { LoginForm } from "../components";
 
 const Login = () => {
-  
-  // const isloading = useSelector((state) => state.auth.loading);
 
   return (
     <div className="flex justify-center items-center flex-1">
-      {/* {isloading ? <Loader /> : null} */}
       <LoginForm/> 
     </div>
   );

@@ -72,7 +72,7 @@ const UploadVideoModal = ({setIsModalOpened}) => {
           <form 
           onSubmit={handleSubmit(submitHandler)} 
           className="mx-auto flex w-full flex-col gap-y-4 p-4 max-h-[80vh] overflow-auto scrollbar-hide">
-            <div className={`w-full border-2 ${videoSrc?'border-none':'border-dashed border-light-font_color_light dark:border-light-btn1_color'} py-12 text-center rounded-lg`}>
+            <div className={`flex flex-col justify-center items-center w-full border-2 ${videoSrc?'border-none':'border-dashed border-light-font_color_light dark:border-light-btn1_color'} py-12  rounded-lg`}>
                 {videoSrc && <h2 className="text-left">Video Preview</h2>}
                 <div className="flex justify-center text-[5rem] py-4">
                     {
