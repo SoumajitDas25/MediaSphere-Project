@@ -140,6 +140,9 @@ const addTweetCommentReply = asyncHandler(async (req,res) => {
 
 const getCommentReplies = asyncHandler(async (req,res) =>{
 
+    let data;
+    const {page = 1, limit = 10} = req.query
+
     //fetch commentId from req params
     const {commentId} = req.params;
     if(!isValidObjectId(commentId))
@@ -147,78 +150,174 @@ const getCommentReplies = asyncHandler(async (req,res) =>{
         throw new ApiError(400,"Invalid Comment Id");
     }
 
-    //get all reply docs for the comment
-    const replies = await Reply.aggregate([
-        {
-            $match: { //get all reply docs for the comment
-                comment: new mongoose.Types.ObjectId(String(commentId))
-            }
-        },
-        {
-            $lookup: { //get the owner doc for each of the reply doc
-                from: "users",
-                localField: "owner",
-                foreignField: "_id",
-                as: "owner",
-                pipeline: [
-                    {
-                        $project: { //include only these fields
-                            fullName: 1,
-                            username: 1,
-                            avatar: 1
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            $addFields: {
-                owner: { //store the owner obj from owner[]
-                    $first: "$owner"
-                }
-            }
-        },
-        {
-            $lookup: { //get the repliedTo doc for each of the reply doc
-                from: "users",
-                localField: "repliedTo",
-                foreignField: "_id",
-                as: "repliedTo",
-                pipeline: [
-                    {
-                        $project: { //include only these fields
-                            fullName: 1,
-                            username: 1
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            $addFields: {
-                repliedTo: { //store the repliedTo obj from repliedTo[]
-                    $first: "$repliedTo"
-                }
-            }
-        },
-        {
-            $project: { //include only these fields
-                repliedTo: 1,
-                owner: 1,
-                content: 1,
-                likesCount: 1
-            }
-        }
-    ]);
-    if(!replies)
+    //check if the comment exists or not
+    const comment = await Comment.findById(commentId);
+    if(!comment)
     {
-        throw new ApiError(500,"Something went wrong while fetching Comment Replies");
+        throw new ApiError(400,"Incorrect Comment Id - Comment does not exist")
+    }
+    
+    //get all replies for the comment
+    const totalReplies = await Reply.find(
+        {
+            comment:commentId
+        }
+    );
+    if(!totalReplies)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total Replies");
+    }
+    if(totalReplies.length < 1)
+    {
+        data={
+            totalReplies:0,
+            paginatedContent:null,
+            totalPages:0
+        }
+    }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalReplies.length / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
+
+        //get all reply docs for the comment
+        const paginatedReplies = await Reply.aggregate([
+            {
+                $match: { //get all reply docs for the comment
+                    comment: new mongoose.Types.ObjectId(String(commentId))
+                }
+            },
+            {   //No of docs to skip
+                $skip: (Number(page) - 1) * Number(limit)
+            },
+            {   //Max No of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $lookup: { //get the like doc of the reply for the user if it exists
+                    from: "likes",
+                    let: { replyId: "$_id" }, // Reference the current replyId
+                    pipeline: [
+                        {
+                            $match:{
+                                $expr: {
+                                    $and: [
+                                        { 
+                                            $eq: ["$reply", "$$replyId"] 
+                                        },
+                                        { 
+                                            $eq: ["$likedBy", new mongoose.Types.ObjectId(String(req.user._id))] 
+                                        },
+                                        {
+                                            $eq:["$targetType","reply"]
+                                        }  
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "isLikedData",
+                }
+            },
+            {
+                $addFields: { //if isLikedData[] contains data, then add isliked as true else false
+                    isLiked: {
+                        $cond: { 
+                            if: { 
+                                $gt: [
+                                    { $size: "$isLikedData" },
+                                    0
+                                ] 
+                            }, 
+                            then: true, 
+                            else: false 
+                        }
+                    }
+                }
+            },
+            {
+                $lookup: { //get the owner doc for each of the reply doc
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                        {
+                            $project: { //include only these fields
+                                username: 1,
+                                channelName: 1,
+                                avatar: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields: {
+                    owner: { //store the owner obj from owner[]
+                        $first: "$owner"
+                    }
+                }
+            },
+            // {
+            //     $lookup: { //get the repliedTo doc for each of the reply doc
+            //         from: "users",
+            //         localField: "repliedTo",
+            //         foreignField: "_id",
+            //         as: "repliedTo",
+            //         pipeline: [
+            //             {
+            //                 $project: { //include only these fields
+            //                     fullName: 1,
+            //                     username: 1
+            //                 }
+            //             }
+            //         ]
+            //     }
+            // },
+            // {
+            //     $addFields: {
+            //         repliedTo: { //store the repliedTo obj from repliedTo[]
+            //             $first: "$repliedTo"
+            //         }
+            //     }
+            // },
+            {
+                $project: { //include only these fields
+                    // repliedTo: 1,
+                    content: 1,
+                    owner: 1,
+                    likesCount: 1,
+                    isLiked: 1,
+                    createdAt: 1,
+                    updatedAt: 1
+                }
+            }
+        ]);
+        if(!paginatedReplies)
+        {
+            throw new ApiError(500,"Something went wrong while fetching Paginated Replies");
+        }
+        data={
+            totalReplies: totalReplies.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedReplies,
+        };
     }
 
-    //send the replies[] as response
+    //send the paginatedReplies[] as response
     res.status(200)
     .json(
-        new ApiResponse(200,replies,"Comment Replies fetched Sucessfully")
+        new ApiResponse(
+            200,
+            data,
+            "Paginated Replies fetched Sucessfully"
+        )
     );
 
 });

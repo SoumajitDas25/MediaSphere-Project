@@ -570,10 +570,7 @@ const Channel = () => {
                     activeContent && (
                         <ListContainer 
                         type={activeContent.type} 
-                        // data={activeContentData?activeContentData.paginatedContent:null}  
-                        // fetchData={loadContentData}
-                        isPaginationEnabled={true} 
-                        // totalPaginationPages={activeContentData?activeContentData.totalPages:null} 
+                        isPaginationEnabled={true}  
                         fetchPaginatedData={loadContentData}
                         dataLimitPerPage={6}
                         allowDelayLoad={true}

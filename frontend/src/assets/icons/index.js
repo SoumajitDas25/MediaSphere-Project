@@ -30,6 +30,7 @@ import { FaCamera } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
 import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineSpaceDashboard } from "react-icons/md";
+import { BsChatDots } from "react-icons/bs";
 import NoUserIcon from "./user.png";
 
 export {
@@ -43,6 +44,7 @@ export {
     IoMdHeartEmpty as LikeIcon,
     IoMdHeart as LikedIcon,
     MdOutlineComment as CommentIcon,
+    BsChatDots as ReplyIcon,
     MdOutlineWatchLater as WatchLaterIcon,
     RxHamburgerMenu as SidebarOptionIcon,
     IoIosSearch as SearchIcon,

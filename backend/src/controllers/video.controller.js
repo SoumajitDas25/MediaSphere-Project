@@ -293,11 +293,11 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400,"Invalid Video Id");
     }
 
-    //get video doc by id
+    //check if the video exists or not
     const video = await Video.findById(videoId);
     if(!video)
     {
-        throw new ApiError(400,"Incorrect Tweet Id - Tweet does not exist");
+        throw new ApiError(400,"Incorrect Video Id - Video does not exist");
     }
 
     //check if user has already viewed this video or not
@@ -317,9 +317,14 @@ const getVideoById = asyncHandler(async (req, res) => {
         {
             throw new ApiError(500,"Something went wrong while creating view document")
         }
-        video.viewsCount += 1;
-        const savedVideo =await video.save({validateBeforeSave:false});
-        if(!savedVideo)
+        // video.viewsCount += 1;
+        // const savedVideo =await video.save({validateBeforeSave:false});
+        const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        { $inc: { viewsCount: 1 } },
+        { new: true } // return updated document
+        );
+        if(!updatedVideo)
         {
             throw new ApiError(500,"Something went wrong while incrementing viewsCount in Video document")
         }
@@ -347,11 +352,117 @@ const getVideoById = asyncHandler(async (req, res) => {
     {
         throw new ApiError(500,"Something went wrong while saving User document");
     }
+
+    const finalVideo = await Video.aggregate([
+        {
+            $match: { //find the video doc by id
+                _id: new mongoose.Types.ObjectId(String(videoId))
+            }
+        },
+        {
+            $lookup: { //get the owner obj by id
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $lookup: {  //get those connection docs where channel = ownerid i.e., (list of subscribers)
+                        from: "connections",
+                        localField: "_id",
+                        foreignField: "channel",
+                        as:"subscribers"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            subscribersCount: { //calculate the size of subscribers field
+                            $size: "$subscribers"
+                            },
+                            isSubscribed: { //check whether user/viewer has subscribed to the owner's channel
+                                $cond: {
+                                    if: {$in: [req.user._id,"$subscribers.subscriber"]},
+                                    then: true,
+                                    else: false
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $project: { //include only these fields
+                            _id:1,
+                            username: 1,
+                            channelName: 1,
+                            avatar: 1,
+                            subscribersCount: 1,
+                            isSubscribed: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $lookup: { //get the like doc of the video for the user if it exists
+                from: "likes",
+                let: { videoId: "$_id" }, // Reference the current videoId
+                pipeline: [
+                    {
+                        $match:{
+                            $expr: {
+                                $and: [
+                                    { 
+                                        $eq: ["$video", "$$videoId"] 
+                                    },
+                                    { 
+                                        $eq: ["$likedBy", new mongoose.Types.ObjectId(String(req.user._id))] 
+                                    },
+                                    {
+                                        $eq:["$targetType","video"]
+                                    } 
+                                ]
+                            }
+                        }
+                    }
+                ],
+                as: "isLikedData",
+            }
+        },
+        {
+            $addFields: { //if isLikedData[] contains data, then add isliked as true else false
+                isLiked: {
+                    $cond: { 
+                        if: { 
+                            $gt: [
+                                { $size: "$isLikedData" },0] 
+                        }, 
+                        then: true, 
+                        else: false 
+                    }
+                }
+            }
+        },
+        {
+            $addFields: { //store the first element(obj) of owner[] field
+                owner: {
+                    $first: "$owner"
+                }
+            }
+        },
+        {
+            $project: {
+                isLikedData: 0
+            }
+        }
+    ]);
+    if(!(finalVideo && finalVideo.length!==0))
+    {
+        throw new ApiError(500,"Something went wrong while fetching video document");
+    }
     
     //send the video doc as response
     res.status(200)
     .json(
-        new ApiResponse(200,video,"Video Fetched Successfully")
+        new ApiResponse(200,finalVideo[0],"Video Fetched Successfully")
     );
 
 })

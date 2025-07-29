@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 
 const TweetCard = ({
     data,
-    viewType = "Grid",
     extraElements
 }) => {
 

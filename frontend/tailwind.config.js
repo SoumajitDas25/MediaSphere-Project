@@ -24,7 +24,23 @@ export default {
       },
       boxShadow: {
         'custom': '0px 0px 10px var(--tw-shadow-color)',
-      }
+      },
+      keyframes: {
+        rotateOnceClockWise: {
+          '0%': { transform: 'rotate(0deg) scale(1)' },
+          '50%': { transform: 'rotate(180deg) scale(2)'},
+          '100%': { transform: 'rotate(360deg) scale(1)' },
+        },
+        rotateOnceAntiClockWise: {
+          '0%': { transform: 'rotate(0deg) scale(1)' },
+          '50%': { transform: 'rotate(-180deg) scale(2)'},
+          '100%': { transform: 'rotate(-360deg) scale(1)' },
+        },
+      },
+      // animation: {
+      //   rotateOnceClockWise: 'rotateOnce linear forwards',
+      //   rotateOnceAntiClockWise: 'rotateOnce linear forwards',
+      // },
     },
   },
   plugins: [

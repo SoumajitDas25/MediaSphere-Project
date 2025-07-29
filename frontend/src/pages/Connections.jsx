@@ -99,7 +99,7 @@ const Connections = () => {
             isPaginationEnabled={true}
             fetchPaginatedData={fetchConnections}
             reloadData={reloadConnections}
-            dataLimitPerPage={1}
+            dataLimitPerPage={6}
             viewType="List"
             allowDelayLoad={true}
             delayLoadDurationInMs={700}

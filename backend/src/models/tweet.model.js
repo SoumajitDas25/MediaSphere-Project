@@ -12,6 +12,14 @@ const tweetSchema = new Schema({
     likesCount:{
         type: Number,
         default: 0
+    },
+    commentsCount: {
+        type: Number,
+        default: 0
+    },
+    isPublished: {
+        type: Boolean,
+        default: true
     }
 },{timestamps: true});
 

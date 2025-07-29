@@ -1,4 +1,4 @@
-import {Heading,ListContainer,Button} from "../components/"
+import {Heading,ListContainer,Button,VideoCard} from "../components/"
 import {DeleteIcon} from "../assets/icons/"
 import { userAPI } from "../api"
 import { useRef, useState } from "react"
@@ -93,26 +93,34 @@ const WatchHistory = () => {
             type="video"
             isPaginationEnabled={true}
             fetchPaginatedData={fetchWatchHistory}
-            dataLimitPerPage={2}
+            dataLimitPerPage={6}
             ref={listRef}
             viewType="List" 
             noDataDisplayMessage='Empty Watch History'
             allowDelayLoad={true}
             delayLoadDurationInMs={700}
-            extraChildElements={(videoId)=>(
-                <div className="flex justify-center items-center pr-2 md:px-4 lg:px-6 py-2">
-                    <Button 
-                    className="px-[0.5rem]"
-                    onClick={(event)=>{
-                        event.stopPropagation();
-                        deleteWatchHistoryById(videoId)
-                    }}
-                    isLoading={deleteVideoId === videoId?true:false}
-                    >  
-                        <span className="text-[2.5vw] sm:text-[1rem] md:text-[1.2rem] lg:text-[1.25rem]">
-                            <DeleteIcon/>
-                        </span>
-                    </Button>
+            renderCustomItem ={(item)=>(
+                <div key={item._id} className={`col-span-full shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none`}>
+                    <VideoCard  
+                    data={item} 
+                    viewType="List"
+                    extraElements={(videoId)=>(
+                        <div className="flex justify-center items-center pr-2 md:px-4 lg:px-6 py-2">
+                            <Button 
+                            className="px-[0.5rem]"
+                            onClick={(event)=>{
+                                event.stopPropagation();
+                                deleteWatchHistoryById(videoId)
+                            }}
+                            isLoading={deleteVideoId === videoId?true:false}
+                            >  
+                                <span className="text-[2.5vw] sm:text-[1rem] md:text-[1.2rem] lg:text-[1.25rem]">
+                                    <DeleteIcon/>
+                                </span>
+                            </Button>
+                        </div>
+                    )}
+                    />
                 </div>
             )}
             />

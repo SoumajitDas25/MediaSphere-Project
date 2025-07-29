@@ -7,7 +7,8 @@ const ChannelCard = ({
     data,
     connectionType,
     reloadData=null,
-    viewType = "Grid"
+    viewType="List",
+    showUsername=true
 }) => {
 
     const navigate = useNavigate();
@@ -68,8 +69,9 @@ const ChannelCard = ({
 
                     <div className={`row-span-8 flex flex-col justify-center ${viewType==='Grid'?'items-center':'items-start'} gap-1 text-[0.7rem] sm:text-[0.9rem] md:text-[1rem]`}>
                         {/* username */}
-                        <h2 className='font-thin overflow-hidden'>@{username}</h2>
-
+                        {
+                            showUsername && <h2 className='font-thin overflow-hidden'>@{username}</h2>
+                        }
                         {/* Subscribers Count */}
                         <h2 className=' font-medium overflow-hidden'>{subscribersCount} Subscribers</h2>
                     </div>

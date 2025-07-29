@@ -11,6 +11,7 @@ import { Like } from "../models/like.model.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
 
+    let data;
     const {page = 1, limit = 10} = req.query
 
     //get videoId from req params
@@ -35,82 +36,143 @@ const getVideoComments = asyncHandler(async (req, res) => {
     );
     if(!totalComments)
     {
-        throw new ApiError(500,"Something went wrong while fetching Total Comments");
+        throw new ApiError(500,"Something went wrong while fetching Total Video Comments");
     }
-
-    //check if page no. exceeds max page no.
-    let totalPages = Math.ceil(totalComments.length / Number(limit));
-    if(totalPages < Number(page))
+    if(totalComments.length < 1)
     {
-        throw new ApiError(400,"Page Number exceeds Max Page Number");
+        data={
+            totalComments:0,
+            paginatedContent:null,
+            totalPages:0
+        }
     }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalComments.length / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
 
-    //get paginated comments for the video
-    const paginatedComments = await Comment.aggregate([
-        {
-            $match: { //get all comment docs for the video
-                video: new mongoose.Types.ObjectId(String(videoId))
-            }
-        },
-        {   //No of docs to skip
-            $skip: (Number(page) - 1) * Number(limit)
-        },
-        {   //Max No of docs to be fetched
-            $limit: Number(limit)
-        },
-        {
-            $lookup: { //get the owner doc for each of the comment doc
-                from: "users",
-                localField: "owner",
-                foreignField: "_id",
-                as: "owner",
-                pipeline: [
-                    {
-                        $project: {
-                            username: 1,
-                            fullName: 1,
-                            avatar: 1,
-                            coverImage: 1
+        //get paginated comments for the video
+        const paginatedComments = await Comment.aggregate([
+            {
+                $match: { //get all comment docs for the video
+                    video: new mongoose.Types.ObjectId(String(videoId))
+                }
+            },
+            {   //No of docs to skip
+                $skip: (Number(page) - 1) * Number(limit)
+            },
+            {   //Max No of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $lookup: { //get the like doc of the comment for the user if it exists
+                    from: "likes",
+                    let: { commentId: "$_id" }, // Reference the current commentId
+                    pipeline: [
+                        {
+                            $match:{
+                                $expr: {
+                                    $and: [
+                                        { 
+                                            $eq: ["$comment", "$$commentId"] 
+                                        },
+                                        { 
+                                            $eq: ["$likedBy", new mongoose.Types.ObjectId(String(req.user._id))] 
+                                        },
+                                        {
+                                            $eq:["$targetType","comment"]
+                                        }  
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "isLikedData",
+                }
+            },
+            {
+                $addFields: { //if isLikedData[] contains data, then add isliked as true else false
+                    isLiked: {
+                        $cond: { 
+                            if: { 
+                                $gt: [
+                                    { $size: "$isLikedData" },
+                                    0
+                                ] 
+                            }, 
+                            then: true, 
+                            else: false 
                         }
                     }
-                ]
-            }
-        },
-        {
-            $addFields: { //store the owner obj from owner[]
-                owner: {
-                    $first: "$owner"
+                }
+            },
+            {
+                $lookup: { //get the owner doc for each of the comment doc
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                        {
+                            $project: {
+                                username: 1,
+                                channelName: 1,
+                                avatar: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields: { //store the owner obj from owner[]
+                    owner: {
+                        $first: "$owner"
+                    }
+                }
+            },
+            {
+                $lookup: { //get all reply docs for each of the comment doc
+                    from: "replies",
+                    localField: "_id",
+                    foreignField: "comment",
+                    as: "repliesCount"
+                }
+            },
+            {
+                $addFields: { //calculate & store the no of reply docs for each of the comment doc
+                    repliesCount: {
+                        $size: "$repliesCount"
+                    }
+                }
+            },
+            {
+                $project: {
+                    content: 1,
+                    owner: 1,
+                    likesCount: 1,
+                    repliesCount: 1,
+                    isLiked: 1,
+                    createdAt: 1,
+                    updatedAt: 1
                 }
             }
-        },
-        {
-            $lookup: { //get all reply docs for each of the comment doc
-                from: "replies",
-                localField: "_id",
-                foreignField: "comment",
-                as: "repliesCount"
-            }
-        },
-        {
-            $addFields: { //calculate & store the no of reply docs for each of the comment doc
-                repliesCount: {
-                    $size: "$repliesCount"
-                }
-            }
-        },
-        {
-            $project: {
-                content: 1,
-                owner: 1,
-                likesCount: 1,
-                repliesCount: 1
-            }
-        }
-    ]);
+        ]);
 
-    if(!paginatedComments)
-    {
-        throw new ApiError(500,"Something went wrong while fetching Paginated Comments")
+        if(!paginatedComments)
+        {
+            throw new ApiError(500,"Something went wrong while fetching Paginated Video Comments")
+        }
+
+        data={
+            totalComments: totalComments.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedComments,
+        };
     }
 
     //send the paginatedComments[] as response
@@ -118,13 +180,8 @@ const getVideoComments = asyncHandler(async (req, res) => {
     .json(
         new ApiResponse(
             200,
-            {
-                totalComments: totalComments.length,
-                currentPage: Number(page),
-                totalPages,
-                paginatedComments,
-            },
-            "Video Paginated Comments fetched Successfully"
+            data,
+            "Paginated Video Comments fetched Successfully"
         )
     );
 
@@ -156,7 +213,7 @@ const getTweetComments = asyncHandler(async (req, res) => {
     );
     if(!totalComments)
     {
-        throw new ApiError(500,"Something went wrong while fetching Total Comments");
+        throw new ApiError(500,"Something went wrong while fetching Total Tweet Comments");
     }
 
     //check if page no. exceeds max page no.
@@ -231,7 +288,7 @@ const getTweetComments = asyncHandler(async (req, res) => {
 
     if(!paginatedComments)
     {
-        throw new ApiError(500,"Something went wrong while fetching Paginated Comments")
+        throw new ApiError(500,"Something went wrong while fetching Paginated Tweet Comments")
     }
 
     //send the paginatedComments[] as response
@@ -245,7 +302,7 @@ const getTweetComments = asyncHandler(async (req, res) => {
                 totalPages,
                 paginatedComments,
             },
-            "Tweet Paginated Comments fetched Successfully"
+            "Paginated Tweet Comments fetched Successfully"
         )
     );
 
@@ -459,4 +516,4 @@ export {
     addTweetComment, 
     updateComment,
     deleteComment
-    }
+}

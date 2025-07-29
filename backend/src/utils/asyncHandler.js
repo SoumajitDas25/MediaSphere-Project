@@ -39,7 +39,7 @@ const asyncHandler = (requestHandler) => async (req, res, next) => {
         {
             //server error
 
-            console.log("Server Error: ",error.message); //log the server error message
+            console.log("Server Error: ",error.message); //log the server error for debugging purpose
 
              // Extracting the file path & line no.
             const stackLines = error.stack.split('\n');

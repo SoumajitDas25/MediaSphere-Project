@@ -6,6 +6,7 @@ import Loader from "./Loader/Loader";
 import AuthLayout from "./AuthLayout/AuthLayout";
 import Error from "./Error/Error";
 import Input from "./Input";
+import TextArea from "./TextArea";
 import LoginForm from "./LoginForm/LoginForm";
 import SignupForm from "./SignupForm/SignupForm";
 import Channel from "./Channel/Channel";
@@ -14,17 +15,22 @@ import VideoCard from "./VideoCard/VideoCard";
 import TweetCard from "./TweetCard/TweetCard";
 import PlaylistCard from "./PlaylistCard/PlaylistCard";
 import ChannelCard from "./ChannelCard/ChannelCard";
+import CommentCard from "./CommentCard/CommentCard";
+import ReplyCard from "./ReplyCard/ReplyCard";
 import ContentLoader from "./Loader/ContentLoader";
 import UploadVideoModal from "./UploadVideo/UploadVideoModal";
 import CreateTweetModal from "./CreateTweetModal/CreateTweetModal";
 import PublishButton from "./PublishButton/PublishButton";
 import BgFreezer from "./BgFreezer/BgFreezer";
 import Modal from "./Modal/Modal";
+import InputModal from "./Modal/InputModal";
+import ConfirmModel from "./Modal/ConfirmModel";
 import Uploader from "./Uploader/Uploader";
 import Message from "./Message/Message";
 import ImageCropper from "./ImageCropper/ImageCropper";
 import Heading from "./Heading";
-
+import Like from "./Like";
+import CommentPanel from "./CommentPanel";
 
 export {
     Header,
@@ -32,6 +38,7 @@ export {
     Layout,
     Button,
     Input,
+    TextArea,
     Loader,
     ContentLoader,
     AuthLayout,
@@ -44,13 +51,19 @@ export {
     TweetCard,
     PlaylistCard,
     ChannelCard,
-    UploadVideoModal,
-    CreateTweetModal,
+    CommentCard,
+    ReplyCard,
     PublishButton,
     BgFreezer,
     Modal,
+    InputModal,
+    ConfirmModel,
+    UploadVideoModal,
+    CreateTweetModal,
     Uploader,
     Message,
     ImageCropper,
-    Heading
+    Heading,
+    Like,
+    CommentPanel
 }
