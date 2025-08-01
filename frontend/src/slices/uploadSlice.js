@@ -20,10 +20,10 @@ const uploadSlice = createSlice({
       state.data=action.payload.data;
       state.filesCount=action.payload.filesCount;
     },
-    // finishUpload: (state, action) => {
-    //   state.hasCompleted=true;  
-    // },
-    clearUpload: (state, action) => {
+    finishUpload: (state, action) => {
+      state.hasCompleted=true;  
+    },
+    resetUpload: (state, action) => {
       state.hasCompleted=false;
       state.isUploading=false; 
       if (state.data?.tempUrl) 
@@ -36,5 +36,5 @@ const uploadSlice = createSlice({
   }
 });
 
-export const { startUpload,clearUpload } = uploadSlice.actions;
+export const { startUpload,finishUpload,resetUpload } = uploadSlice.actions;
 export default uploadSlice.reducer;

@@ -229,7 +229,7 @@ const Video = () => {
                 </div>
 
                 <div className='flex flex-row gap-4 px-2'>
-                    <span>{data.viewsCount} views</span>
+                    <span>{`${data.viewsCount} ${data.viewsCount>1?'views':'view'}`}</span>
                     {/* timestamp */}
                     <span className="inline-block text-gray-600 dark:text-gray-400">
                         {

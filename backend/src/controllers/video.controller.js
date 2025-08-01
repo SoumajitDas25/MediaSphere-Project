@@ -9,9 +9,9 @@ import { Playlist } from "../models/playlist.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
-import {fileUpload,deleteFile,deleteVideoFile, fileUploadWithProgressTracking} from "../utils/cloudinary.js"
-import { deleteTempFiles, getAbsoluteFilePath } from "../utils/FileHandler.js"
+import {fileUpload,generateFileUploadCredentials,deleteFile,deleteVideoFile} from "../utils/cloudinary.js"
 import {uploadEmitters} from "../sockets/emitters/index.js";
+import { error } from "console"
 
 const assetFolderName ="videos";
 
@@ -223,49 +223,25 @@ const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
 const publishAVideo = asyncHandler(async (req, res) => {
 
     //get video details from req body
-    let title,description;
-    if(req.body.title && req.body.description)
+    let {title,description,videoMetadata,thumbnailMetadata} = req.body;
+
+    //validation - not empty
+    if(!(title && description && videoMetadata && thumbnailMetadata))
     {
-        title = req.body.title
-        description = req.body.description
+        throw new ApiError(400,"All fields are required");
     }
-    //get local paths of video & thumbail
-    let videoLocalPath,thumbnailLocalPath;
-    if(req.files && (Array.isArray(req.files.videoFile) && req.files.videoFile.length > 0) && (Array.isArray(req.files.thumbnailFile) && req.files.thumbnailFile.length > 0))
+    if(!(videoMetadata.secure_url && videoMetadata.duration && thumbnailMetadata.secure_url))
     {
-        videoLocalPath = req.files.videoFile[0].path;
-        thumbnailLocalPath = req.files.thumbnailFile[0].path;
-    }
-    if(!(videoLocalPath && thumbnailLocalPath))
-    {
-        deleteTempFiles(req.files);
-        throw new ApiError(400,"Video file & thumbnail is required");
-    }
-    if(!(title && description))
-    {
-        deleteTempFiles(req.files);
-        throw new ApiError(400,"Video title & description are required");
-    }
-    
-    //upload to cloudinary with progress tracking
-    const videoFile = await fileUploadWithProgressTracking(videoLocalPath,req.files.videoFile[0].size,1,assetFolderName,req.socketId);     
-    if(!videoFile) //upload unsuccessful 
-    {
-        throw new ApiError(500,"Video file upload failed");
-    }
-    const thumbnail = await fileUploadWithProgressTracking(thumbnailLocalPath,req.files.thumbnailFile[0].size,2,assetFolderName,req.socketId);
-    if(!thumbnail) //upload unsuccessful 
-    {
-        throw new ApiError(500,"Thumbnail file upload failed");
+        throw new ApiError(400,"Video or Thumbnail Metadata is invalid");
     }
 
     //create entry in db
     const video = await Video.create({
-        videoFile: videoFile.secure_url,
-        thumbnail: thumbnail.secure_url,
+        videoFile: videoMetadata.secure_url,
+        thumbnail: thumbnailMetadata.secure_url,
         title: title,
         description: description,
-        duration: Math.floor(videoFile.duration),
+        duration: Math.floor(videoMetadata.duration),
         owner: req.user.id
     });
     if(!video)
@@ -282,6 +258,22 @@ const publishAVideo = asyncHandler(async (req, res) => {
     .json(
         new ApiResponse(201,{},"Video Published Successfully")
     );
+})
+
+const generateVideoUploadSignature = asyncHandler((req,res)=>{
+
+    //fetch mediaType from req params
+    const {mediaType='image'} = req.params;
+
+    //generate upload signature
+    const signatureData = generateFileUploadCredentials(mediaType);
+
+    //send signature data to the frontend
+    res.status(200)
+    .json(
+        new ApiResponse(200,signatureData,"Video Upload Signature Generated Successfully")
+    );
+
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
@@ -675,6 +667,7 @@ export {
     getAllVideos,
     getPaginatedUserVideos,
     publishAVideo,
+    generateVideoUploadSignature,
     getVideoById,
     updateVideo,
     deleteVideo,

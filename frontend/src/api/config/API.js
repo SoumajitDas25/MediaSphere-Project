@@ -20,7 +20,7 @@ class Api
         data = {},
         method = 'POST',
         headers = {},
-        uploadProgress=null,
+        uploadProgress=null
         ) => {    
         try 
         {

@@ -1,8 +1,10 @@
+import axios from "axios";
 import Api from "./config/API";
 
 const routePrefix = 'videos';
 const ApiInstance = new Api(routePrefix);
 const {api} = ApiInstance;
+const plainAxios = axios.create(); //for requesting to third-party urls
 
 const getUserVideos = async (userId,page,limit)=>{
     try
@@ -23,26 +25,64 @@ const getUserVideos = async (userId,page,limit)=>{
     }
 }
 
-const publishVideo = async(uploadData,setProgress)=>{
+const publishVideo = async(publishVideoData)=>{
     try
     {
-        const {video,thumbnail,title,description}=uploadData;
-        const formData= new FormData();
-        formData.append('videoFile',video);
-        formData.append('thumbnailFile',thumbnail);
-        formData.append('title',title);
-        formData.append('description',description);
+        const {videoMetadata,thumbnailMetadata,title,description}=publishVideoData;
 
         const response =  await api(
             `/`,
-            formData,
-            'POST',
             {
-                'Content-Type': 'multipart/form-data'
+                videoMetadata,
+                thumbnailMetadata,
+                title,
+                description
             },
-            { //uploadProgress
-                setProgress,
-                limit: 100
+            'POST'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const getFileUploadCredentials = async (mediaType='image')=>{
+    try
+    {
+        const response =  await api(
+            `/upload/generate-credentials/${mediaType.toLowerCase()}`,
+            {},
+            'GET'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const uploadFileToCloudinary = async(file,uploadCredentials,setProgress)=>{
+    try
+    {
+        const {signature,timestamp,apiKey,folder,upload_url} = uploadCredentials;
+        const formData= new FormData();
+        formData.append('file',file);
+        formData.append('api_key',apiKey);
+        formData.append('timestamp',timestamp);
+        formData.append('signature',signature);
+        formData.append('folder',folder);
+
+        const response = await plainAxios.post(
+            upload_url,
+            formData,
+            {
+                onUploadProgress: (event)=>{
+                    setProgress(event.loaded);
+                },
+                withCredentials:false
             }
         );
         return response;
@@ -72,5 +112,7 @@ const getVideoById = async (videoId)=>{
 export default {
     getUserVideos,
     publishVideo,
+    getFileUploadCredentials,
+    uploadFileToCloudinary,
     getVideoById
 }

@@ -1,6 +1,6 @@
 import { HiOutlineHome } from "react-icons/hi2";
 import { MdOutlineSubscriptions } from "react-icons/md";
-import { LuUserSquare2 } from "react-icons/lu";
+import { LuSquareUserRound } from "react-icons/lu";
 import { AiOutlineHistory } from "react-icons/ai";
 import { MdOutlinePlaylistPlay } from "react-icons/md";
 import { MdOutlineVideoLibrary } from "react-icons/md";
@@ -36,7 +36,7 @@ import NoUserIcon from "./user.png";
 export {
     HiOutlineHome as HomeIcon,
     MdOutlineSubscriptions as SubscriptionIcon,
-    LuUserSquare2 as ChannelIcon,
+    LuSquareUserRound as ChannelIcon,
     AiOutlineHistory as HistoryIcon,
     MdOutlinePlaylistPlay as PlaylistIcon,
     MdOutlineVideoLibrary as VideoIcon,

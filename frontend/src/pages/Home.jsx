@@ -1,6 +1,5 @@
-import React from 'react'
-import {Heading, ListContainer} from '../components'
-import {VideoThumbnail} from "../assets/images"
+import React, { useState } from 'react'
+import {Heading, ListContainer,ContentLoader} from '../components'
 
 const Home = () => {
 
@@ -72,7 +71,7 @@ const Home = () => {
 
   return (
     <div>
-      <Heading className='py-2'>Home</Heading>
+      <Heading className='py-2'>Home</Heading>     
     </div>  
   )
 }

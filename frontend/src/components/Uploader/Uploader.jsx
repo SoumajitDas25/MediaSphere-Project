@@ -1,171 +1,297 @@
-import React, { useEffect, useState } from 'react';
-import {useDispatch,useSelector} from "react-redux";
-import { clearUpload } from '../../slices/uploadSlice';
-import {setSuccessMessage,setFailureMessage} from '../../slices/messageSlice'
-import { colors } from '../../assets/themes/theme';
+// import React, { useEffect, useState } from 'react';
+// import {useDispatch,useSelector} from "react-redux";
+// import { clearUpload } from '../../slices/uploadSlice';
+// import {setSuccessMessage,setFailureMessage} from '../../slices/messageSlice'
+// import { colors } from '../../assets/themes/theme';
+// import { TickIcon } from '../../assets/icons';
+// import { videoAPI } from '../../api';
+// import {uploadListeners} from '../../sockets/listeners';
+
+// const Uploader = () => {
+
+//   const dispatch = useDispatch();
+//   const {isUploading, hasCompleted,data,filesCount} = useSelector((state) => state.upload);
+//   const [progress,setProgress] = useState(0);
+//   const {listenToUploadProgress,stopListeningUploadProgress,listenToUploadError,stopListeningUploadError}=uploadListeners;
+//   let uploadedFilesProgress = {};
+
+//   const constructFilefromMetaData = async(metadata)=>{
+//       const response = await fetch(metadata.tempUrl);
+//       // console.log(response);
+//       const blob = await response.blob();
+//       return new File([blob],metadata.name,{type:metadata.type});
+//   } 
+
+//   const setTotalProgressPercentage = (progressPercentage, phase, fileIndex = null) => 
+//     {
+//     let totalProgressPercentage;
+
+//     if (phase === 1) 
+//     {
+//       // Upload phase 1: overall upload from client to server (0–49%)
+//       totalProgressPercentage = Math.floor(progressPercentage * 0.5);
+//     } 
+//     else if (phase === 2 && fileIndex !== null) 
+//     {
+//       // Upload phase 2: per-file upload from server to blob (50–100%)
+//       uploadedFilesProgress[fileIndex] = progressPercentage;
+
+//       const totalFileProgress =
+//         Object.values(uploadedFilesProgress).reduce((sum, val) => sum + val, 0) / filesCount;
+
+//       // Map to 50–100%
+//       totalProgressPercentage = Math.floor(50 + (totalFileProgress * 0.5));
+//     }
+
+//     // Update only if change is significant (>=10%)
+//     if (Math.abs(totalProgressPercentage - progress) >= 10) 
+//     {
+//       setProgress(totalProgressPercentage);
+//     } 
+//   };
+
+
+//   useEffect(()=>{
+
+//     (async()=>{
+
+//       try
+//       {
+//         //construct video & thumbnail files from their data
+//         // console.log(data);
+//         const video = await constructFilefromMetaData(data.videoMetadata);
+//         const thumbnail = await constructFilefromMetaData(data.thumbnailMetadata);
+
+//         const uploadData={
+//           video,
+//           thumbnail,
+//           title:data.title,
+//           description:data.description
+//         }
+
+//         const response = await videoAPI.publishVideo(uploadData,setTotalProgressPercentage);
+//         if(response.status==201)
+//         dispatch(setSuccessMessage({
+//           content:'Video Uploaded Successfully'
+//         }));
+//         else
+//         dispatch(setFailureMessage({
+//           content:'Something went wrong while Uploading'
+//         }));
+//         dispatch(clearUpload());
+//       }
+//       catch(err)
+//       {
+//         console.log('error');
+//         dispatch(setFailureMessage({
+//           content:'Something went wrong while Uploading'
+//         }));
+//         dispatch(clearUpload());
+//       }
+//     })();
+
+//     listenToUploadProgress(setTotalProgressPercentage);
+   
+//     listenToUploadError(() => {
+//       console.error("Upload failed");
+//     });
+
+//     return () => {
+//       stopListeningUploadProgress(); // Clean up
+//       stopListeningUploadError();
+//     };
+    
+
+//   },[]);
+
+//     return (
+//       <div className='fixed right-[2rem] bottom-[2rem] z-[60] transition-all  bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light flex flex-row rounded-full overflow-hidden duration-500'>
+
+//           {
+//               hasCompleted && <div className='flex items-center justify-center p-2 pl-5'>
+//               Video Uploaded Successfully
+//               </div>
+//           }
+
+//         <div 
+//           className='relative h-[4rem] w-[4rem] md:h-[5rem] md:w-[5rem] rounded-full bg-transparent transition-all duration-500 text-[0.75rem] md:text-[1rem] p-2 flex items-center justify-center'
+//           style={{ background: `conic-gradient( ${colors.dark_yellow} ${progress}%, gray 0)`}}
+//         >
+//           <div className="flex items-center justify-center rounded-full h-[2.85rem] w-[2.85rem] md:h-[3.75rem] md:w-[3.75rem]  bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light">
+//             <span className='transition-all duration-500'>
+//             {
+//               progress<100?`${progress}%`:
+//               <span className='text-[2.5rem]'>
+//                 <TickIcon/>
+//               </span>
+//             }
+//             </span>
+//           </div>
+//         </div>
+//       </div>
+//     )
+// }
+
+// export default Uploader
+
+import { useEffect, useState,useRef } from 'react';
+import { useDispatch, useSelector } from "react-redux";
+import { throttle } from "lodash";
+import { resetUpload,finishUpload } from '../../slices/uploadSlice';
+import { setSuccessMessage, setFailureMessage } from '../../slices/messageSlice';
+import { colors,lightTheme } from '../../assets/themes/theme';
 import { TickIcon } from '../../assets/icons';
 import { videoAPI } from '../../api';
-import {uploadListeners} from '../../sockets/listeners';
 
 const Uploader = () => {
-
   const dispatch = useDispatch();
-  const {isUploading, hasCompleted,data,filesCount} = useSelector((state) => state.upload);
-  const [progress,setProgress] = useState(0);
-  const {listenToUploadProgress,stopListeningUploadProgress,listenToUploadError,stopListeningUploadError}=uploadListeners;
-  let uploadedFilesProgress = {};
+  const { isUploading, hasCompleted, data, filesCount } = useSelector((state) => state.upload);
+  const [progress, setProgress] = useState(0);
+  const totalFilesSizeRef = useRef(0);
+  const totalUploadedBytesRef = useRef(0);
+  const lastFileUploadedBytesRef = useRef(0);
+  const {getFileUploadCredentials,uploadFileToCloudinary,publishVideo} = videoAPI;
 
-  const constructFilefromMetaData = async(metadata)=>{
-      const response = await fetch(metadata.tempUrl);
-      // console.log(response);
-      const blob = await response.blob();
-      return new File([blob],metadata.name,{type:metadata.type});
-  }
-
-  // const setTotalProgressPercentage = (progressPercentage)=>{
-
-  //   let totalProgressPercentage
-  //   if(progress<50)
-  //   { //upload phase 1(upload from client to server)- 0-49%
-  //     totalProgressPercentage=Math.floor(progressPercentage*0.5);
-  //     if(Math.abs(totalProgressPercentage-progress)>=10)
-  //     {
-  //       // console.log('Upload Phase 1: ',progress,progressPercentage,totalProgressPercentage);
-  //       setProgress(totalProgressPercentage);
-  //     }
-  //   }
-  //   else
-  //   {
-  //     //upload phase 2(upload from server to blob storage)- 50-100%
-  //     totalProgressPercentage=Math.floor((50+((progressPercentage/filesCount)*0.5)));
-  //     console.log(totalProgressPercentage);//for debugging
-  //     if(Math.abs(totalProgressPercentage-progress)>=10)
-  //     {
-  //       // console.log('Upload Phase 2: ',progress,progressPercentage,totalProgressPercentage);
-  //       setProgress(totalProgressPercentage);
-  //     }
-  //   }
-  //   setTimeout(()=>{ //for debugging
-  //     console.log(progress,progressPercentage,totalProgressPercentage);
-  //   },1000);  
-
-  // } 
-
-  const setTotalProgressPercentage = (progressPercentage, phase, fileIndex = null) => {
-    let totalProgressPercentage;
-
-    if (phase === 1) 
-    {
-      // Upload phase 1: overall upload from client to server (0–49%)
-      totalProgressPercentage = Math.floor(progressPercentage * 0.5);
-    } else if (phase === 2 && fileIndex !== null) {
-      // Upload phase 2: per-file upload from server to blob (50–100%)
-      uploadedFilesProgress[fileIndex] = progressPercentage;
-
-      const totalFileProgress =
-        Object.values(uploadedFilesProgress).reduce((sum, val) => sum + val, 0) / filesCount;
-
-      // Map to 50–100%
-      totalProgressPercentage = Math.floor(50 + (totalFileProgress * 0.5));
-    }
-
-    // Update only if change is significant (>=10%)
-    if (Math.abs(totalProgressPercentage - progress) >= 10) {
-      setProgress(totalProgressPercentage);
-    }
-   
+  const constructFilefromMetaData = async (metadata) => {
+    const response = await fetch(metadata.tempUrl);
+    const blob = await response.blob();
+    return new File([blob], metadata.name, { type: metadata.type });
   };
 
+  const throttledSetProgress = useRef(
+    throttle((uploadedFileBytes) => {
 
-  useEffect(()=>{
+      const newUploadedBytes = Math.abs(uploadedFileBytes - lastFileUploadedBytesRef.current); //calcuting the diff between now & last uploaded bytes
+      lastFileUploadedBytesRef.current = uploadedFileBytes;
+      totalUploadedBytesRef.current += newUploadedBytes; //appending the diff to totalUploadedBytes
+      const combinedProgress = Math.floor((totalUploadedBytesRef.current / totalFilesSizeRef.current) * 100);
+      if(Math.abs(combinedProgress - progress) >= 10)
+        setProgress(combinedProgress)
+      },500,{leading:false,trailing:true})
+  ).current;
 
-    (async()=>{
+  const setFileProgressPercentage = (uploadedFileBytes) => {
 
-      try
-      {
-        //construct video & thumbnail files from their data
-        // console.log(data);
+      const newUploadedBytes = Math.abs(uploadedFileBytes - lastFileUploadedBytesRef.current); //calcuting the diff between now & last uploaded bytes
+      lastFileUploadedBytesRef.current = uploadedFileBytes;
+      totalUploadedBytesRef.current += newUploadedBytes; //appending the diff to totalUploadedBytes
+      const combinedProgress = Math.floor((totalUploadedBytesRef.current / totalFilesSizeRef.current) * 100);
+      if(Math.abs(combinedProgress - progress) >= 10)
+        throttledSetProgress(combinedProgress);
+  };
+
+  useEffect(() => {
+
+    let timer1,timer2;
+    (async () => {
+
+      try {
+        //contruct the files from their metadata
         const video = await constructFilefromMetaData(data.videoMetadata);
         const thumbnail = await constructFilefromMetaData(data.thumbnailMetadata);
-
-        const uploadData={
-          video,
-          thumbnail,
-          title:data.title,
-          description:data.description
+        if(!(video && thumbnail))
+        {
+          throw new Error("Video or Thumbnail is missing");
         }
+        totalFilesSizeRef.current = video.size+thumbnail.size; //storing the total size of all files
+        console.log((totalFilesSizeRef.current / (1032*1032)).toPrecision(2));
 
-        const response = await videoAPI.publishVideo(uploadData,setTotalProgressPercentage);
-        if(response.status==201)
-        dispatch(setSuccessMessage({
-          content:'Video Uploaded Successfully'
-        }));
-        else
-        dispatch(setFailureMessage({
-          content:'Something went wrong while Uploading'
-        }));
-        dispatch(clearUpload());
-      }
-      catch(err)
+        //get the upload crendentials for the video
+        let uploadCredentials;
+        uploadCredentials = await getFileUploadCredentials('video');
+        if(!uploadCredentials.data.data)
+        {
+          throw new Error("Video upload credentails fetch failed")
+        }
+        console.log("video: ",uploadCredentials.data.data);
+        //upload the video to cloudinary
+        lastFileUploadedBytesRef.current=0; //intitializing lastUploadedBtyes for each file
+        const videoMetadata = await uploadFileToCloudinary(video,uploadCredentials.data.data,throttledSetProgress);
+        console.log("video size: ",(video.size/(1032*1032)).toPrecision(2));
+
+        //get the upload crendentials for the thumbnail
+        uploadCredentials = await getFileUploadCredentials('image');
+        if(!uploadCredentials.data.data)
+        {
+          throw new Error("Thumbnail upload credentails fetch failed")
+        }
+        console.log("thumbnail: ",uploadCredentials.data.data);
+        //upload the thumbnail to cloudinary
+        lastFileUploadedBytesRef.current=0;
+        const thumbnailMetadata = await uploadFileToCloudinary(thumbnail,uploadCredentials.data.data,throttledSetProgress);
+        console.log("thumbnail size: ",(thumbnail.size/(1032*1032)).toPrecision(2));
+
+        //save the metadata to the backend
+        const metadata = {
+          videoMetadata: videoMetadata.data,
+          thumbnailMetadata: thumbnailMetadata.data,
+          title: data.title,
+          description: data.description
+        }
+        await publishVideo(metadata);
+
+        await new Promise((resolve,reject) =>{ //delay for showing animation
+          timer1 = setTimeout(() => { 
+            dispatch(finishUpload());
+            dispatch(setSuccessMessage({ content: 'Video uploaded successfully!' }));
+            resolve();
+          }, 3000);
+        });
+      } 
+      catch (err) 
       {
-        console.log('error');
-        dispatch(setFailureMessage({
-          content:'Something went wrong while Uploading'
-        }));
-        dispatch(clearUpload());
+        console.error(err);
+        dispatch(setFailureMessage({ content: 'Something went wrong while uploading' }));
+      }
+      finally
+      {
+        timer2 = setTimeout(() => { //delay for showing completed status
+          dispatch(resetUpload());
+        }, 3000);
       }
     })();
-
-    listenToUploadProgress(setTotalProgressPercentage);
-    // listenToUploadComplete(() => {
-    //   console.log("Upload complete");
-    // });
-    listenToUploadError(() => {
-      console.error("Upload failed");
-    });
-
     return () => {
-      stopListeningUploadProgress(); // Clean up
-      stopListeningUploadError();
-    };
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    } // Cleanup timeout on unmount
+  }, []);
 
-  },[]);
-
-  // useEffect(()=>{
-  //   if(progress>=100)
-  //   {
-  //     // dispatch(finishUpload());
-  //     dispatch(clearUpload());
-      
-  //     // setTimeout(()=>{
-  //     //   dispatch(resetUpload());
-  //     // },3000);
-  //   }
-  // },[progress])
-
-    return (
-      <div className='fixed right-[2rem] bottom-[2rem] z-[60] transition-all  bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light flex flex-row rounded-full overflow-hidden duration-500'>
-
-          {
-              hasCompleted && <div className='flex items-center justify-center p-2 pl-5'>
-              Video Uploaded Successfully
-              </div>
-          }
-
-        <div 
-          className='relative h-[4rem] w-[4rem] md:h-[5rem] md:w-[5rem] rounded-full bg-transparent transition-all duration-500 text-[0.75rem] md:text-[1rem] p-2 flex items-center justify-center'
-          style={{ background: `conic-gradient( ${colors.dark_yellow} ${progress}%, gray 0)`}}
-        >
-          <div className="flex items-center justify-center rounded-full h-[2.85rem] w-[2.85rem] md:h-[3.75rem] md:w-[3.75rem]  bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light">
-            <span className='transition-all duration-500'>{progress<100?`${progress}%`:
-            <span className='text-[2.5rem]'>
-              <TickIcon/>
-            </span>
-            }</span>
+  return (
+    <div className='fixed right-[2rem] bottom-[2rem] z-[60] transition-all bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light flex flex-row rounded-full overflow-hidden duration-500 shadow-custom shadow-light-btn1_color'>
+            {/* {hasCompleted && <div className='flex items-center justify-center p-2 pl-5'>Video Uploaded Successfully</div>} */}
+            <div className={`w-[4rem] md:w-[5rem] aspect-1 rounded-full transition-all duration-500 text-[0.75rem] md:text-[1.2rem] p-2 flex items-center justify-center ${(progress===100 && !hasCompleted) && 'animate-[spin_0.7s_ease-in-out_infinite]'}`} style={{ background: `conic-gradient(${colors.yellow} ${progress<100?progress:hasCompleted?'100':'75'}%, ${lightTheme.font_color_light} 0)`}}>
+              {
+                progress<100 && (
+                  <div className="flex items-center justify-center rounded-full w-[2.85rem]  md:w-[3.75rem] aspect-1 bg-light-bg_light dark:bg-dark-btn1_color shadow-custom shadow-light-btn1_color">
+                    <span className='transition-all duration-500'>
+                        <span className='font-extrabold text-color-dark_yellow'>
+                        {`${progress}%`}
+                        </span>                       
+                    </span>
+                  </div>
+                )
+              }
+              </div>   
+            {
+              progress===100 && (
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full w-[2.85rem]  md:w-[3.75rem] aspect-1 bg-light-bg_light dark:bg-dark-btn1_color shadow-custom shadow-light-btn1_color text-[0.75rem] md:text-[1.2rem]">
+                  <span className='transition-all duration-500'>
+                    { 
+                        !hasCompleted?
+                        <span className='font-extrabold text-color-dark_yellow'>
+                        {`${progress}%`}
+                        </span>
+                        : 
+                      <span className='text-[2.5rem]'>
+                        <TickIcon />
+                      </span>  
+                    }
+                  </span>
+                </div>
+              )
+            }
           </div>
-        </div>
-      </div>
-    )
-}
+  );
+};
 
-export default Uploader
+export default Uploader;

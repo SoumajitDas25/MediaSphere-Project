@@ -93,6 +93,30 @@ const fileUploadWithProgressTracking = async (localFilePath,fileSize,fileIndex,a
     }
 }
 
+const generateFileUploadCredentials = (mediaType) => {
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const publicId = `video_${timestamp}`;
+
+    const paramsToSign = {
+        timestamp,
+        folder: 'MediaSphere-Project/videos'
+    };
+
+    const signature = cloudinary.utils.api_sign_request(paramsToSign, process.env.CLOUDINARY_API_SECRET);
+
+    return {
+        signature,
+        timestamp,
+        publicId,
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        apiKey: process.env.CLOUDINARY_API_KEY,
+        uploadPreset: 'mediasphere_video_preset',
+        folder: `${process.env.CLOUDINARY_PROJECT_FOLDER}/videos`,
+        upload_url: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/${(mediaType==='video'||mediaType==='image')?mediaType:'any'}/upload`
+    }
+}
+
 const deleteFile = async (fileUrl)=>
 {
     try
@@ -141,4 +165,4 @@ const deleteVideoFile = async (fileUrl)=>
     }
 }
 
-export {fileUpload,fileUploadWithProgressTracking,deleteFile,deleteVideoFile};
+export {fileUpload,fileUploadWithProgressTracking,generateFileUploadCredentials,deleteFile,deleteVideoFile};
