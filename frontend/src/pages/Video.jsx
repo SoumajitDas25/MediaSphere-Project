@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { connectionAPI, videoAPI, likeAPI } from '../api';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Loader,Button, CommentPanel,Like} from '../components';
-import {CommentIcon, LikeIcon,LikedIcon} from "../assets/icons"
+import {CommentIcon} from "../assets/icons"
 import { useSelector } from 'react-redux';
+import {useUserEvents,useVideoEvents} from "../events/hooks"
 
 const Video = () => {
 
@@ -11,10 +12,15 @@ const Video = () => {
     const navigate = useNavigate();
     const [loading,setLoading] = useState(true);
     const [data,setData] = useState(null);
+    const [videoOwner,setVideoOwner] = useState(null);
     const [isLiked,setIsLiked] = useState(null);
+    const [likeCount,setLikeCount] = useState(0);
+    const [commentCount,setCommentCount] = useState(0);
+    const [viewCount,setViewCount] = useState(0);
     const [isSubscriptionButtonLoading,setIsSubscriptionButtonLoading] = useState(false);
     const [isCommentPanelExpanded,setIsCommentPanelExpanded] = useState(false);
     const userId = useSelector(state=>state.user.user?._id);
+
     const {getVideoById} = videoAPI;
     const {toggleSubscription} = connectionAPI;
     const {toggleVideoLike} = likeAPI;
@@ -60,8 +66,12 @@ const Video = () => {
             setLoading(true);
             const response = await getVideoById(videoId);
             setData(response.data?.data);
+            setVideoOwner(response.data?.data?.owner);
             setIsLiked(response.data?.data?.isLiked);
-            console.log(response.data.data);
+            setLikeCount(response.data?.data?.likesCount);
+            setCommentCount(response.data?.data?.commentsCount);
+            setViewCount(response.data?.data?.viewsCount);
+            // console.log(response.data.data);
             return response.data.data;
         }
         catch(error)
@@ -81,12 +91,9 @@ const Video = () => {
             setIsSubscriptionButtonLoading(true);
             const response = await toggleSubscription(data.owner?._id);
             console.log(response.data.data); 
-            setData(state=>({
-              ...state,
-              owner:{
-                ...state.owner,
-                isSubscribed:!state.owner.isSubscribed
-              }
+            setVideoOwner(state=>({
+                ...state,
+                isSubscribed:!state.isSubscribed
             })); 
         }
         catch(error)
@@ -101,42 +108,84 @@ const Video = () => {
 
     const toggleLike = async () =>{
 
-        const prevState = data; // backup for reverting in catch
+        const prevLikeCount = likeCount; // backup for reverting in catch
+        const prevIsLiked = isLiked;
 
         try
         {
-            setData(state=>({ //toggle the state before api call
-              ...state,
-              likesCount: state.isLiked? state.likesCount-1:state.likesCount+1,
-              isLiked: !state.isLiked
-            }));
+            // setData(state=>({ //toggle the state before api call
+            //   ...state,
+            //   likesCount: state.isLiked? state.likesCount-1:state.likesCount+1,
+            //   isLiked: !state.isLiked
+            // }));
+            setLikeCount(prev=>isLiked?prev-1:prev+1);
+            setIsLiked(prev=>!prev);
             const response = await toggleVideoLike(data?._id);
             console.log(response.data.data);  
-            const { likesCount, isLiked } = response.data.data;
+            const { likesCount, isLiked:isVideoLiked } = response.data.data;
 
             //sync with backend response to maintain consistency
-            setData(state => ({
-              ...state,
-              likesCount,
-              isLiked
-            }));
+            // setData(state => ({
+            //   ...state,
+            //   likesCount,
+            //   isLiked
+            // }));
+            setLikeCount(likesCount);
+            setIsLiked(isVideoLiked);
         }
         catch(error)
         {   
             //if any error occurs, then revert the state
-            setData(prevState); 
+            setLikeCount(prevLikeCount);
+            setIsLiked(prevIsLiked);
             console.log(error);       
         }
     }
 
     useEffect(()=>{
-
       //load video details
-      // (async()=>{
-      //   await getVideoDetails();       
-      // })();
       getVideoDetails();
     },[])
+
+    useUserEvents({
+      data:{
+        userId:(data && data.owner && data.owner._id)?data.owner._id:null
+      },
+      listeners:{
+        updateSubscriberCount:(payload)=>{
+          console.log("Subscriber Count: ",payload);
+          setVideoOwner(prev=>({...prev,subscribersCount:payload}))
+        },
+        updateAvatar:(payload)=>{
+          setVideoOwner(prev=>({...prev,avatar:payload}))
+        },
+        updateChannelName:(payload)=>{
+          setVideoOwner(prev=>({...prev,channelName:payload}))
+        }
+      }
+    });
+
+    useVideoEvents({
+      data:{
+        videoId:videoId
+      },
+      listeners:{
+        updateViewCount:(payload)=>{
+          setViewCount(payload);
+        },
+        updateVideoLikeCount:(payload)=>{
+          console.log("Video Like Count: ",payload);
+          setLikeCount(payload);
+        },
+        updateIsVideoLiked:(payload)=>{
+          setIsLiked(payload);
+        },
+        updateCommentCount:(payload)=>{
+          console.log("Comment Count: ",payload);
+          setCommentCount(payload);
+        }
+      }
+    });
 
     return (
       <div className={`${isCommentPanelExpanded && 'flex-1 flex flex-col md:block'}`}>
@@ -165,8 +214,8 @@ const Video = () => {
                   >
 
                       {/* avatar */}
-                      <div className='cursor-pointer' onClick={()=>navigate(`/channel/@${data.owner.username}`)}>
-                          <img className={`aspect-1 h-full rounded-full z-5 p-1`} src={data.owner.avatar} alt="User Avatar" />
+                      <div className='cursor-pointer' onClick={()=>navigate(`/channel/@${videoOwner.username}`)}>
+                          <img className={`aspect-1 h-full rounded-full z-5 p-1`} src={videoOwner.avatar} alt="User Avatar" />
                       </div>
 
                       {/* Channel Info*/}
@@ -174,28 +223,28 @@ const Video = () => {
 
                           <div>
                               {/* Channel Name */}
-                              <h1 className={`font-bold overflow-hidden text-[0.9rem] sm:text-[1rem] md:text-[1.1rem] text-wrap flex items-center justify-start cursor-pointer`} onClick={()=>navigate(`/channel/@${data.owner.username}`)}>{data.owner.channelName}</h1>
+                              <h1 className={`font-bold overflow-hidden text-[0.9rem] sm:text-[1rem] md:text-[1.1rem] text-wrap flex items-center justify-start cursor-pointer`} onClick={()=>navigate(`/channel/@${videoOwner.username}`)}>{videoOwner.channelName}</h1>
 
                               <div>
                                   {/* Subscribers Count */}
-                                  <h2 className=' font-medium overflow-hidden'>{data.owner.subscribersCount} Subscribers</h2>
+                                  <h2 className=' font-medium overflow-hidden'>{videoOwner.subscribersCount} Subscribers</h2>
                               </div>
                           </div>
 
                           {
-                            userId !== data.owner?._id && 
+                            userId !== videoOwner._id && 
                             <Button 
                               fontSize='text-[0.7rem] sm:text-[0.8rem] md:text-[1rem]' 
-                              bgcolor={`${data.owner.isSubscribed? 'bg-transparent hover:bg-dark-font_color_dark dark:hover:bg-light-bg_dark':'bg-color-yellow'}`} 
-                              textcolor={`${data.owner.isSubscribed? 'text-light-font_color_dark dark:text-dark-font_color_dark hover:dark:text-light-font_color_dark':'text-light-font_color_dark'}`}
-                              className={`${data.owner.isSubscribed && 'border border-light-font_color_dark dark:border-dark-font_color_dark'}`} 
+                              bgcolor={`${videoOwner.isSubscribed? 'bg-transparent hover:bg-dark-font_color_dark dark:hover:bg-light-bg_dark':'bg-color-yellow'}`} 
+                              textcolor={`${videoOwner.isSubscribed? 'text-light-font_color_dark dark:text-dark-font_color_dark hover:dark:text-light-font_color_dark':'text-light-font_color_dark'}`}
+                              className={`${videoOwner.isSubscribed && 'border border-light-font_color_dark dark:border-dark-font_color_dark'}`} 
                               onClick={(event)=>{
                                   event.stopPropagation();
                                   toggleSubscribe();
                               }}
                               isLoading={isSubscriptionButtonLoading}
                               >
-                                  {data.owner.isSubscribed?'Unsubscribe':'Subscribe'}
+                                  {videoOwner.isSubscribed?'Unsubscribe':'Subscribe'}
                               </Button>
                           }
                               
@@ -208,11 +257,11 @@ const Video = () => {
                     <div className='flex flex-row justify-center items-center gap-1 cursor-pointer'>
                       {/* Like Icon */}
                       <Like 
-                      isLiked={data.isLiked}
+                      isLiked={isLiked}
                       likeToggleHandler={toggleLike}
                       />
                       {/* LikesCount */}
-                      <span>{data.likesCount}</span>
+                      <span>{likeCount}</span>
                     </div>
                     {/* Comments Option */}
                     <div 
@@ -223,13 +272,13 @@ const Video = () => {
                         <CommentIcon/>
                       </span>
                       {/* CommentsCount */}
-                      <span>{data.commentsCount}</span>
+                      <span>{commentCount}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className='flex flex-row gap-4 px-2'>
-                    <span>{`${data.viewsCount} ${data.viewsCount>1?'views':'view'}`}</span>
+                    <span>{`${viewCount} ${viewCount>1?'views':'view'}`}</span>
                     {/* timestamp */}
                     <span className="inline-block text-gray-600 dark:text-gray-400">
                         {

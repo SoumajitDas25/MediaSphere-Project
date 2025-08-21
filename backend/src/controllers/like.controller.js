@@ -7,6 +7,7 @@ import { Video } from "../models/video.model.js"
 import {Comment} from "../models/comment.model.js"
 import {Tweet} from "../models/tweet.model.js"
 import {Reply} from "../models/reply.model.js"
+import eventBus from "../utils/eventBus.js"
 
 // const toggleVideoLike = asyncHandler(async (req, res) => {
 
@@ -128,6 +129,9 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         {
             throw new ApiError(500,"Something went wrong while updating Video document");
         }
+
+        //emit updateVideoLikeCount event
+        eventBus.emit("video:updateVideoLikeCount",{id:videoId,data:video.likesCount});
 
         //end the transaction via session
         await session.commitTransaction();

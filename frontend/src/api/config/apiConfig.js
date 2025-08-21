@@ -1,7 +1,8 @@
 import axios from "axios";
-import { getSocket } from "../../sockets/socket.config";
+import { getSocket } from "../../sockets/socketManager";
+import conf from "../../conf/conf"
 
-axios.defaults.baseURL = 'http://localhost:3000/api/v1';
+axios.defaults.baseURL = conf.backendApiUrl;
 axios.defaults.withCredentials = true; //allow all credentials
 axios.interceptors.request.use((config)=>{
     //set socketId(if available) as request header

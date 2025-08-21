@@ -6,6 +6,7 @@ import {fileUpload,deleteFile} from '../utils/cloudinary.js'
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import eventBus from "../utils/eventBus.js";
 
 const cookieOptions={
     httpOnly:true,
@@ -285,8 +286,8 @@ const getCurrentUser = asyncHandler(async (req,res)=>{
 const updateAccountDetails = asyncHandler(async (req,res)=>{
 
     //fetch user details(to be updated) from req body
-    const {fullName,email} = req.body;
-    if(!fullName || !email)
+    const {channelName,email} = req.body;
+    if(!channelName || !email)
     {
         throw new ApiError(400,"All fields are required");
     }
@@ -295,7 +296,7 @@ const updateAccountDetails = asyncHandler(async (req,res)=>{
         req.user?._id,
         {
             $set:{
-                fullName,
+                channelName,
                 email
             }
         },
@@ -352,6 +353,9 @@ const updateUserAvatar = asyncHandler(async (req,res)=>{
     isOldAvatarDeleted=true;
     else
     isOldAvatarDeleted=false;
+
+    //emit updateAvatar event
+    eventBus.emit("user:updateAvatar",{id:req.user._id,data:avatar.url});
 
     //return the user doc as response
     return res.status(200)
@@ -412,6 +416,9 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
     }
     else
     isOldCoverImageDeleted="No previous Cover Image";
+
+    //emit updateCoverImage event
+    eventBus.emit("user:updateCoverImage",{id:req.user._id,data:coverImage.url});
 
     //return the user doc as response
     return res.status(200)

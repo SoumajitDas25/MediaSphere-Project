@@ -1,8 +1,10 @@
 import dotenv from "dotenv";
 import connectDB from "./db/index.js";
 import { app } from "./app.js";
-import { getSocketIO, setupSocket } from "./sockets/socket.config.js";
+// import { getSocketIO, setupSocket } from "./sockets/socket.config.js";
 import {createServer} from 'http';
+import { initIO } from "./realtime/ioInstance.js";
+import initIOManager from "./realtime/ioManager.js";
 import { initUserSocketMap } from "./socketStore.js";
 
 dotenv.config({
@@ -15,8 +17,11 @@ connectDB()
 
     //create http server with the express app
     const server = createServer(app);
-    //set up socket with this server
-    setupSocket(server);
+    //initialize socket-io with this server
+    // setupSocket(server);
+    initIO(server);
+    //intialize socket-io manager
+    initIOManager();
 
     initUserSocketMap(); //intialize userSocketMap
 

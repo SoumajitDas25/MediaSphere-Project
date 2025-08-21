@@ -1,7 +1,5 @@
 import {v2 as cloudinary} from "cloudinary";
-import { deleteTempFileByPath, getAbsoluteFilePath } from "./FileHandler.js";
-import { uploadEmitters } from "../sockets/emitters/index.js";
-import fs from 'fs';
+import { deleteTempFileByPath } from "./FileHandler.js";
 
 cloudinary.config({ 
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
@@ -34,69 +32,69 @@ const fileUpload = async (localFilePath,asset_folder)=>{
     }
 }
 
-const fileUploadWithProgressTracking = async (localFilePath,fileSize,fileIndex,asset_folder,socketId)=>{
-    try
-    {
-        const {emitUploadProgress,emitUploadError} = uploadEmitters;
-        if(localFilePath)
-        {
-            //Read file as stream and report progress
-            const absoluteFilePath=getAbsoluteFilePath(localFilePath);
-            let uploadedBytes = 0;
-            const readStream = fs.createReadStream(absoluteFilePath);
+// const fileUploadWithProgressTracking = async (localFilePath,fileSize,fileIndex,asset_folder,socketId)=>{
+//     try
+//     {
+//         // const {emitUploadProgress,emitUploadError} = uploadEmitters;
+//         if(localFilePath)
+//         {
+//             //Read file as stream and report progress
+//             const absoluteFilePath=getAbsoluteFilePath(localFilePath);
+//             let uploadedBytes = 0;
+//             const readStream = fs.createReadStream(absoluteFilePath);
 
-            readStream
-            .on("data", (chunk) => {
-                //calculate progress percentage
-                uploadedBytes += chunk.length;
-                const progress = fileSize>0? Math.floor((uploadedBytes / fileSize) * 100):100;
-                //emit to that specific socket
-                emitUploadProgress(socketId,progress,fileIndex);
-            });  
+//             readStream
+//             .on("data", (chunk) => {
+//                 //calculate progress percentage
+//                 uploadedBytes += chunk.length;
+//                 const progress = fileSize>0? Math.floor((uploadedBytes / fileSize) * 100):100;
+//                 //emit to that specific socket
+//                 emitUploadProgress(socketId,progress,fileIndex);
+//             });  
 
-            const response = await new Promise((resolve, reject) => {
+//             const response = await new Promise((resolve, reject) => {
 
-                readStream.on("error",(error)=>{
-                    reject(error);
-                });
+//                 readStream.on("error",(error)=>{
+//                     reject(error);
+//                 });
 
-                const uploadStream=cloudinary.uploader.upload_stream({
-                    asset_folder: `${process.env.CLOUDINARY_PROJECT_FOLDER}/${asset_folder}`,
-                    resource_type: 'auto'
-                },
-                (error, result) => {
-                    if(error) 
-                    reject(error);
-                    else
-                    resolve(result);
-                  }
-                );
+//                 const uploadStream=cloudinary.uploader.upload_stream({
+//                     asset_folder: `${process.env.CLOUDINARY_PROJECT_FOLDER}/${asset_folder}`,
+//                     resource_type: 'auto'
+//                 },
+//                 (error, result) => {
+//                     if(error) 
+//                     reject(error);
+//                     else
+//                     resolve(result);
+//                   }
+//                 );
 
-                //start the upload
-                readStream.pipe(uploadStream);
-            });
+//                 //start the upload
+//                 readStream.pipe(uploadStream);
+//             });
 
-            //remove the locally saved temporary file after successful upload
-            deleteTempFileByPath(localFilePath);
-            return response;
-        }
-        else
-        return null;
-    }
-    catch(error)
-    {
-        // console.log('error');
-        //remove the locally saved temporary file as upload operation got failed
-        emitUploadError(socketId);
-        deleteTempFileByPath(localFilePath);
-        return null;
-    }
-}
+//             //remove the locally saved temporary file after successful upload
+//             deleteTempFileByPath(localFilePath);
+//             return response;
+//         }
+//         else
+//         return null;
+//     }
+//     catch(error)
+//     {
+//         // console.log('error');
+//         //remove the locally saved temporary file as upload operation got failed
+//         emitUploadError(socketId);
+//         deleteTempFileByPath(localFilePath);
+//         return null;
+//     }
+// }
 
-const generateFileUploadCredentials = (mediaType) => {
+const generateFileUploadCredentials = (mediaType='any',moduleName='') => {
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const publicId = `video_${timestamp}`;
+    // const publicId = `video_${timestamp}`;
 
     const paramsToSign = {
         timestamp,
@@ -108,11 +106,11 @@ const generateFileUploadCredentials = (mediaType) => {
     return {
         signature,
         timestamp,
-        publicId,
-        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        // publicId,
+        // cloudName: process.env.CLOUDINARY_CLOUD_NAME,
         apiKey: process.env.CLOUDINARY_API_KEY,
-        uploadPreset: 'mediasphere_video_preset',
-        folder: `${process.env.CLOUDINARY_PROJECT_FOLDER}/videos`,
+        // uploadPreset: 'mediasphere_video_preset',
+        folder: `${process.env.CLOUDINARY_PROJECT_FOLDER}/${moduleName}`,
         upload_url: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/${(mediaType==='video'||mediaType==='image')?mediaType:'any'}/upload`
     }
 }
@@ -165,4 +163,4 @@ const deleteVideoFile = async (fileUrl)=>
     }
 }
 
-export {fileUpload,fileUploadWithProgressTracking,generateFileUploadCredentials,deleteFile,deleteVideoFile};
+export {fileUpload,generateFileUploadCredentials,deleteFile,deleteVideoFile};

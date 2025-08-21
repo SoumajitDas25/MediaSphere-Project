@@ -5,9 +5,10 @@ import { useEffect, useState } from 'react';
 import { verifyAndGetUserThunk } from './slices/authSlice';
 import { setUser } from './slices/userSlice';
 import { Error } from './components';
-import {initializeSocketConnection,getSocket} from './sockets/socket.config';
+// import {initializeSocketConnection,getSocket} from './sockets/socket.config';
+import {initSocketManager} from './sockets/socketManager';
 
-function App() {
+const App = () => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -48,7 +49,7 @@ function App() {
   },[user]);
 
   useEffect(() => {
-    initializeSocketConnection(); //intitialize socket connection upon app load
+    initSocketManager(); //intitialize socket connection upon app load
   },[]);
 
   useEffect(()=>{

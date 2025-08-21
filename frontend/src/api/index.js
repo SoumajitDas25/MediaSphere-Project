@@ -5,7 +5,6 @@ import tweetAPI from "./tweetAPI";
 import playlistAPI from "./playlistAPI";
 import commentAPI from "./commentAPI";
 import replyAPI from "./replyAPI";
-import socketAPI from "./socketAPI";
 import connectionAPI from "./connectionAPI";
 import likeAPI from "./likeAPI";
 
@@ -17,7 +16,6 @@ export {
     playlistAPI,
     commentAPI,
     replyAPI,
-    socketAPI,
     connectionAPI,
     likeAPI
 }

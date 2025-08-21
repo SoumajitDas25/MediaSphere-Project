@@ -1,6 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {VideoCard,TweetCard,PlaylistCard,ChannelCard,CommentCard,ReplyCard,ContentLoader,Button} from '.';
-import { uploadListeners,refreshListeners } from '../sockets/listeners';
 // import { useSelector } from 'react-redux';
 
 const ListContainer = forwardRef(({ //to expose its instance to its parent using a ref
@@ -24,8 +23,6 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
     const [data,setData] = useState(null);
     const [totalPaginationPages,setTotalPaginationPages] = useState(null);
     // const loggedUserId = useSelector(state=>state.user.user._id);
-    const {listenToUploadComplete,stopListeningUploadComplete} = uploadListeners;
-    const {listenToRefreshContentList,stopListeningRefreshContentList} = refreshListeners;
     const totalPagesRef = useRef(null);
     const currentPageRef = useRef(null);
     const dataRef = useRef(null);
@@ -328,31 +325,26 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
         currentPageRef.current = activeButtonIndex; //store the current state upon updation
     },[activeButtonIndex]);
 
-    useEffect(()=>{
-        listenToUploadComplete((uploaderId,mediaType)=>{
-            // if(loggedUserId===uploaderId)
-            const lastPageIndex = totalPagesRef.current;
-            const currentData = dataRef.current;
-            if (lastPageIndex && mediaType.toLowerCase()===type.toLowerCase())
-            {
-                console.log(currentData,lastPageIndex);
-                if(currentData.length === dataLimitPerPage) 
-                {
-                    loadData(lastPageIndex+1) //navigate/load to next page to view the new content if current page is full
-                    setTotalPaginationPages(state=>state+1); //increment totalpages by 1
-                }
-                else
-                loadData(lastPageIndex); //refresh the current page to view the new content if current page is not full
-            // console.log('Content List Refreshed');
-            }
-        }); 
-        return ()=> stopListeningUploadComplete(); //clean up
-    },[])
-
-    useEffect(()=>{
-        listenToRefreshContentList(()=>reload("current"));
-        return ()=>stopListeningRefreshContentList(); //clean up
-    },[])
+    // useEffect(()=>{
+    //     listenToUploadComplete((uploaderId,mediaType)=>{
+    //         // if(loggedUserId===uploaderId)
+    //         const lastPageIndex = totalPagesRef.current;
+    //         const currentData = dataRef.current;
+    //         if (lastPageIndex && mediaType.toLowerCase()===type.toLowerCase())
+    //         {
+    //             console.log(currentData,lastPageIndex);
+    //             if(currentData.length === dataLimitPerPage) 
+    //             {
+    //                 loadData(lastPageIndex+1) //navigate/load to next page to view the new content if current page is full
+    //                 setTotalPaginationPages(state=>state+1); //increment totalpages by 1
+    //             }
+    //             else
+    //             loadData(lastPageIndex); //refresh the current page to view the new content if current page is not full
+    //         // console.log('Content List Refreshed');
+    //         }
+    //     }); 
+    //     return ()=> stopListeningUploadComplete(); //clean up
+    // },[])
 
     return (
         <div className={`flex flex-col justify-between items-center ${minHeight?minHeight:'min-h-[30rem]'}`}>

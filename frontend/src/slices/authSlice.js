@@ -1,9 +1,8 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { authAPI,userAPI,socketAPI } from "../api";
+import { authAPI,userAPI } from "../api";
 
 const {login,logout,refreshToken} = authAPI;
 const {getUser} = userAPI;
-const {registerSocket,removeSocket} = socketAPI;
 
 const initialState = {
     isloggedIn: false,
@@ -77,8 +76,7 @@ export const loginThunk = createAsyncThunk(
             {
                 return rejectWithValue(response.data);
             }
-            //if login successful, then register the socket to the backend
-            await registerSocket();
+            
             return response.data;
         }
         catch(err)
@@ -94,8 +92,6 @@ export const logoutThunk = createAsyncThunk(
     async (_,{ rejectWithValue })=>{
         try
         {
-            //remove/unregister the socket from the backend
-            await removeSocket();
             
             const response = await logout();
             console.log(response.data);

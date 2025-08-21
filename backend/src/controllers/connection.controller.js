@@ -4,7 +4,7 @@ import { Connection } from "../models/connection.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
-import {refreshEmitters} from "../sockets/emitters/index.js";
+import eventBus from "../utils/eventBus.js"
 
 //controller to toggle subscription of a channel
 const toggleSubscription = asyncHandler(async (req, res) => {
@@ -117,11 +117,10 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         throw new ApiError(404,"Something went wrong while fetching User Channel");
     }
 
-    const {emitRefreshSubscriberCount,emitRefreshSubscriptionCount} = refreshEmitters;
-    //send refreshSubscriberCount event to the channel owner room
-    emitRefreshSubscriberCount(channelId,updatedOwnerSubscribers[0].subscriberCount);
-    //send refreshSubscriptionCount event to the channel viewer room
-    emitRefreshSubscriptionCount(req.user._id,updatedViewerSubscriptions[0].subscriptionCount);
+    //emit updateSubcriberCount event to channel owner room
+    eventBus.emit("user:updateSubscriberCount",{id:channelId,data:updatedOwnerSubscribers[0].subscriberCount});
+    //emit updateSubcriptionCount event to channel viewer room
+    eventBus.emit("user:updateSubscriptionCount",{id:req.user._id,data:updatedViewerSubscriptions[0].subscriptionCount});
 
     //send a success message as response
     res.status(200)

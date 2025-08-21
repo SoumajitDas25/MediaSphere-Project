@@ -7,6 +7,7 @@ import { Video } from "../models/video.model.js"
 import { Tweet } from "../models/tweet.model.js"
 import { Reply } from "../models/reply.model.js"
 import { Like } from "../models/like.model.js"
+import eventBus from "../utils/eventBus.js"
 
 
 const getVideoComments = asyncHandler(async (req, res) => {
@@ -308,7 +309,6 @@ const getTweetComments = asyncHandler(async (req, res) => {
 
 })
 
-
 const addVideoComment = asyncHandler(async (req, res) => {
     
     //fetch videoId from req params
@@ -352,6 +352,9 @@ const addVideoComment = asyncHandler(async (req, res) => {
     {
         throw new ApiError(500,"Something went wrong while saving updated video document in db");
     }
+
+    //emit updateCommentCount event
+    eventBus.emit("video:updateCommentCount",{id:videoId,data:video.commentsCount});
 
     //send the comment doc as response
     res.status(201)

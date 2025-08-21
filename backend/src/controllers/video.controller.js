@@ -10,8 +10,7 @@ import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
 import {fileUpload,generateFileUploadCredentials,deleteFile,deleteVideoFile} from "../utils/cloudinary.js"
-import {uploadEmitters} from "../sockets/emitters/index.js";
-import { error } from "console"
+import eventBus from "../utils/eventBus.js"
 
 const assetFolderName ="videos";
 
@@ -110,7 +109,7 @@ const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
     let data;
     //fetch page & limit from req query
     const {page = 1, limit = 9} = req.query;
-    console.log(page,limit);
+    // console.log(page,limit);
 
     //get userId from req params
     const {userId} = req.params;
@@ -249,9 +248,12 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while creating video doc entry in db");
     }
 
-    //send the uploadComplete event to the client
-    const {emitUploadComplete} = uploadEmitters;
-    emitUploadComplete(req.user._id);
+    
+    //send the updateVideoCount event
+    const updatedVideoCount = await Video.countDocuments({
+        owner: req.user._id
+    });
+    eventBus.emit("user:updateVideoCount",{id:req.user._id,data:updatedVideoCount});
 
     //send the video obj as response
     res.status(201)
@@ -260,18 +262,18 @@ const publishAVideo = asyncHandler(async (req, res) => {
     );
 })
 
-const generateVideoUploadSignature = asyncHandler((req,res)=>{
+const generateVideoUploadCredentials = asyncHandler((req,res)=>{
 
     //fetch mediaType from req params
     const {mediaType='image'} = req.params;
 
     //generate upload signature
-    const signatureData = generateFileUploadCredentials(mediaType);
+    const uploadCredentials = generateFileUploadCredentials(mediaType,'videos');
 
     //send signature data to the frontend
     res.status(200)
     .json(
-        new ApiResponse(200,signatureData,"Video Upload Signature Generated Successfully")
+        new ApiResponse(200,uploadCredentials,"Video Upload Signature Generated Successfully")
     );
 
 })
@@ -450,6 +452,9 @@ const getVideoById = asyncHandler(async (req, res) => {
     {
         throw new ApiError(500,"Something went wrong while fetching video document");
     }
+
+    //emit updateViewCount event
+    eventBus.emit("video:updateViewCount",{id:videoId,data:finalVideo[0].viewsCount});
     
     //send the video doc as response
     res.status(200)
@@ -627,6 +632,12 @@ const deleteVideo = asyncHandler(async (req, res) => {
     {
         throw new ApiError(500,"Something went wrong while updating user watch history");
     }
+    
+    //send the updateVideoCount event
+    const updatedVideoCount = await Video.countDocuments({
+        owner: req.user._id
+    });
+    eventBus.emit("user:updateVideoCount",{id:req.user._id,data:updatedVideoCount});
 
     res.status(200)
     .json(
@@ -667,7 +678,7 @@ export {
     getAllVideos,
     getPaginatedUserVideos,
     publishAVideo,
-    generateVideoUploadSignature,
+    generateVideoUploadCredentials,
     getVideoById,
     updateVideo,
     deleteVideo,

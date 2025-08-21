@@ -6,8 +6,7 @@ import { useParams } from 'react-router-dom'
 import { userAPI,videoAPI,tweetAPI,playlistAPI,connectionAPI } from '../../api'
 import {setAvatar as setUserAvatar,setCoverImage as setUserCoverImage} from "../../slices/userSlice"
 import {setIsCropperOpened,setCropProperties,setCropReset,setCropLoading} from '../../slices/cropSlice'
-import {userEmitters} from '../../sockets/emitters'
-import {refreshListeners,uploadListeners} from '../../sockets/listeners'
+import {useUserEvents} from "../../events/hooks"
 
 const Channel = () => {
 
@@ -20,6 +19,7 @@ const Channel = () => {
     const [coverImage,setCoverImage] = useState(null);
     const [subscriberCount,setSubscriberCount] = useState(null);
     const [subscriptionCount,setSubscriptionCount] = useState(null);
+    // const [isSubscribed,] = useState(null);
     const [videosCount,setVideosCount] = useState(null);
     const [activeButtonIndex,setActiveButtonIndex] = useState(null);
     const [activeContent,setActiveContent] = useState(null);
@@ -32,9 +32,6 @@ const Channel = () => {
     const {getUserTweets} = tweetAPI;
     const {getUserPlaylists} = playlistAPI;
     const {toggleSubscription} = connectionAPI;
-    const {emitJoinUserPage,emitLeaveUserPage} = userEmitters;
-    const {listenToRefreshSubscriberCount,stopListeningRefreshSubscriberCount,listenToRefreshSubscriptionCount,stopListeningRefreshSubscriptionCount} = refreshListeners;
-    const {listenToUploadComplete,stopListeningUploadComplete} = uploadListeners;
 
     const checkisUserOwnProfile = () =>{
         return userId === channelProfile._id;
@@ -85,152 +82,7 @@ const Channel = () => {
 
         //reset the crop state
         dispatch(setCropReset());
-    }
-
-    // const videos = [
-    //     {
-    //         _id:'1',
-    //         thumbnail: "https://res.cloudinary.com/predator-op/image/upload/v1721682299/zti6yq56udcw3kljsal0.png",
-    //         title: "Understanding JavaScript Closures",
-    //         duration: 600,
-    //         viewsCount: 105,
-    //         owner:{
-    //                 _id:"66e9cb6ef5a380d1842c4624",
-    //                 username:"predator315",
-    //                 channelName:"Code_With_Predator",
-    //                 avatar:"http://res.cloudinary.com/predator-op/image/upload/v1726598000/gczafpyqy0mnwen02stx.jpg"
-    //         },
-    //         createdAt: "2024-09-29T10:00:00.000+00:00",
-    //         updatedAt: "2024-09-29T10:00:00.000+00:00"
-    //     },
-    //     {
-    //         _id:'2',
-    //         thumbnail: VideoThumbnail,
-    //         title: "React Hooks Explained",
-    //         duration: 750,
-    //         viewsCount: 200,
-    //         owner:{
-    //                 _id:"66e9cb6ef5a380d1842c4624",
-    //                 username:"predator315",
-    //                 channelName:"Code_With_Predator",
-    //                 avatar:"http://res.cloudinary.com/predator-op/image/upload/v1726598000/gczafpyqy0mnwen02stx.jpg"
-    //             }, 
-    //         createdAt: "2024-09-28T12:00:00.000+00:00",
-    //         updatedAt: "2024-09-28T12:00:00.000+00:00"
-    //     },
-    //     {
-    //         _id:'3',
-    //         thumbnail: "https://res.cloudinary.com/predator-op/image/upload/v1721682299/zti6yq56udcw3kljsal0.png",
-    //         title: "Mastering Redux Toolkit",
-    //         duration: 1200,
-    //         viewsCount: 350,
-    //         owner:{
-    //                 _id:"66e9cb6ef5a380d1842c4624",
-    //                 username:"predator315",
-    //                 channelName:"Code_With_Predator",
-    //                 avatar:"http://res.cloudinary.com/predator-op/image/upload/v1726598000/gczafpyqy0mnwen02stx.jpg"
-    //             }, 
-    //         createdAt: "2024-09-27T15:00:00.000+00:00",
-    //         updatedAt: "2024-09-27T15:00:00.000+00:00"
-    //     }
-    //   ];    
-      
-    // const tweets = [
-    //     {
-    //         _id:'1',
-    //         owner:{
-    //             _id:"66e9cb6ef5a380d1842c4624",
-    //             username:"predator315",
-    //             channelName:"Code_With_Predator",
-    //             avatar:"http://res.cloudinary.com/predator-op/image/upload/v1726598000/gczafpyqy0mnwen02stx.jpg"
-    //         },
-    //         content: "Excited about the new project launch!",
-    //         likesCount: 45,
-    //         commentsCount: 20,
-    //         isLiked:true,
-    //         createdAt: "2024-09-29T12:00:00.000+00:00",
-    //         updatedAt: "2024-09-30T12:00:00.000+00:00"
-    //     },
-    //     {
-    //         _id:'2',
-    //         owner:{
-    //             _id:"66e9cb6ef5a380d1842c4624",
-    //             username:"predator315",
-    //             channelName:"Code_With_Predator",
-    //             avatar:"http://res.cloudinary.com/predator-op/image/upload/v1726598000/gczafpyqy0mnwen02stx.jpg"
-    //         },
-    //         content: "Had a great day at the conference today.",
-    //         likesCount: 32,
-    //         commentsCount: 10,
-    //         isLiked:false,
-    //         createdAt: "2024-09-28T10:00:00.000+00:00",
-    //         updatedAt: "2024-09-28T10:00:00.000+00:00"
-    //     },
-    //     {
-    //         _id:'3',
-    //         owner:{
-    //             _id:"66e9cb6ef5a380d1842c4624",
-    //             username:"predator315",
-    //             channelName:"Code_With_Predator",
-    //             avatar:"http://res.cloudinary.com/predator-op/image/upload/v1726598000/gczafpyqy0mnwen02stx.jpg"
-    //         },
-    //         content: "Looking forward to the weekend!",
-    //         likesCount: 15,
-    //         commentsCount: 50,
-    //         isLiked:false,
-    //         createdAt: "2024-09-27T08:00:00.000+00:00",
-    //         updatedAt: "2024-09-27T08:00:00.000+00:00"
-    //     }
-    // ];    
-    
-    // const playlists = [
-    //     {
-    //         _id:'1',
-    //         name: "JavaScript Essentials",
-    //         description:
-    //         "A collection of videos explaining the core concepts of JavaScript.",
-    //         thumbnail: VideoThumbnail,
-    //         videosCount: 4, 
-    //         owner:{
-    //             _id:"66e9cb6ef5a380d1842c4624",
-    //             username:"predator315",
-    //             channelName:"Code_With_Predator",
-    //             avatar:"http://res.cloudinary.com/predator-op/image/upload/v1726598000/gczafpyqy0mnwen02stx.jpg"
-    //         },
-    //         createdAt: "2024-09-29T11:00:00.000+00:00",
-    //         updatedAt: "2024-09-29T11:00:00.000+00:00",
-    //     },
-    //     {
-    //         _id:'2',
-    //         name: "React for Beginners",
-    //         description: "Beginner-friendly videos to get started with React.js.",
-    //         thumbnail: VideoThumbnail,
-    //         videosCount: 10, 
-    //         owner:{
-    //             _id:"66e9cb6ef5a380d1842c4624",
-    //             username:"predator315",
-    //             channelName:"Code_With_Predator",
-    //             avatar:"http://res.cloudinary.com/predator-op/image/upload/v1726598000/gczafpyqy0mnwen02stx.jpg"
-    //         },
-    //         createdAt: "2024-09-28T15:30:00.000+00:00",
-    //         updatedAt: "2024-10-01T15:30:00.000+00:00",
-    //     },
-    //     {
-    //         _id:'3',
-    //         name: "Full Stack Development",
-    //         description: "A complete guide to full stack development using MERN.",
-    //         thumbnail: VideoThumbnail,
-    //         videosCount: 6, 
-    //         owner:{
-    //             _id:"66e9cb6ef5a380d1842c4624",
-    //             username:"predator315",
-    //             channelName:"Code_With_Predator",
-    //             avatar:"http://res.cloudinary.com/predator-op/image/upload/v1726598000/gczafpyqy0mnwen02stx.jpg"
-    //         },
-    //         createdAt: "2024-09-27T09:00:00.000+00:00",
-    //         updatedAt: "2024-09-27T09:00:00.000+00:00",
-    //     }
-    // ];
+    } 
       
     const ribbon=[
         {
@@ -273,6 +125,7 @@ const Channel = () => {
             // setChannelProfile(state=>({...state,isSubscribed:!state.isSubscribed}));
             const response = await toggleSubscription(channelProfile._id);
             channelProfile.isSubscribed=!channelProfile.isSubscribed;
+            console.log(response);
             // if(!(response.data.statusCode >= 200 && response.data.statusCode <300))
             //     //re-toggle isSubscribed state if any wrong statusCode arrives
             //     setChannelProfile(state=>({...state,isSubscribed:!state.isSubscribed})); 
@@ -375,50 +228,30 @@ const Channel = () => {
 
     },[]);
 
-    useEffect(()=>{
-        if(channelProfile)
-        {
-        //emit joinUserPage event to the backend
-        emitJoinUserPage(channelProfile._id);
-        console.log('User page joined '+username);
-        }
-
-        return ()=>{ //clean up
-            if(channelProfile)
-            {
-                emitLeaveUserPage(channelProfile._id); //emit leaveUserpage event to the backend
-                console.log('User page left '+username);
+    useUserEvents({
+        data:{
+            userId:(channelProfile && channelProfile._id)?channelProfile._id:null
+        },
+        listeners:{
+            updateAvatar:(payload)=>{
+                setAvatar(payload);
+            },
+            updateCoverImage:(payload)=>{
+                setCoverImage(payload);
+            },
+            updateSubscriberCount:(payload)=>{
+            //   console.log("Subscriber Count: ",payload);
+              setSubscriberCount(payload);
+            },
+            updateSubscriptionCount:(payload)=>{
+            //   console.log("Subscription Count: ",payload);
+              setSubscriptionCount(payload);
+            },
+            updateVideoCount:(payload)=>{
+                setVideosCount(payload);
             }
         }
-    },[channelProfile]);
-
-    useEffect(()=>{
-        //attach refreshSubscriberCount Listener upon mount
-        listenToRefreshSubscriberCount((updatedSubscriberCount)=>{
-            setSubscriberCount(updatedSubscriberCount);
-        });
-
-        return ()=>stopListeningRefreshSubscriberCount(); //remove listener upon unmount
-    },[]);
-
-    useEffect(()=>{
-        //attach refreshSubscriptionCount Listener upon mount
-        listenToRefreshSubscriptionCount((updatedSubscriptionCount)=>{
-            setSubscriptionCount(updatedSubscriptionCount);
-        });
-
-        return ()=>stopListeningRefreshSubscriptionCount(); //remove listener upon unmount
-    },[]);
-
-    useEffect(()=>{
-        listenToUploadComplete((uploaderId,mediaType)=>{
-            if(mediaType.toLowerCase()==='video')
-            {
-                setVideosCount(state=>state+1); //increment the videos count if video is uploaded
-            }
-        })
-        return ()=> stopListeningUploadComplete();
-    },[]);
+    });
 
     return (
         <div>

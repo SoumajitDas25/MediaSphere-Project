@@ -4,7 +4,7 @@ import {
     getPaginatedUserVideos,
     getVideoById,
     publishAVideo,
-    generateVideoUploadSignature,
+    generateVideoUploadCredentials,
     togglePublishStatus,
     updateVideo,
     deleteVideo,
@@ -43,6 +43,6 @@ router.route("/user/:userId").get(getPaginatedUserVideos);
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 
-router.route("/upload/generate-credentials/:mediaType").get(generateVideoUploadSignature);
+router.route("/upload/generate-credentials/:mediaType").get(generateVideoUploadCredentials);
 
 export default router;
