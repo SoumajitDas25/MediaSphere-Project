@@ -194,7 +194,7 @@ const Uploader = () => {
           throw new Error("Video or Thumbnail is missing");
         }
         totalFilesSizeRef.current = video.size+thumbnail.size; //storing the total size of all files
-        console.log((totalFilesSizeRef.current / (1032*1032)).toPrecision(2));
+        // console.log((totalFilesSizeRef.current / (1032*1032)).toPrecision(2));
 
         //get the upload crendentials for the video
         let uploadCredentials;
@@ -203,11 +203,11 @@ const Uploader = () => {
         {
           throw new Error("Video upload credentails fetch failed")
         }
-        console.log("video: ",uploadCredentials.data.data);
+        // console.log("video: ",uploadCredentials.data.data);
         //upload the video to cloudinary
         lastFileUploadedBytesRef.current=0; //intitializing lastUploadedBtyes for each file
         const videoMetadata = await uploadFileToCloudinary(video,uploadCredentials.data.data,throttledSetProgress);
-        console.log("video size: ",(video.size/(1032*1032)).toPrecision(2));
+        // console.log("video size: ",(video.size/(1032*1032)).toPrecision(2));
 
         //get the upload crendentials for the thumbnail
         uploadCredentials = await getFileUploadCredentials('image');
@@ -215,11 +215,11 @@ const Uploader = () => {
         {
           throw new Error("Thumbnail upload credentails fetch failed")
         }
-        console.log("thumbnail: ",uploadCredentials.data.data);
+        // console.log("thumbnail: ",uploadCredentials.data.data);
         //upload the thumbnail to cloudinary
         lastFileUploadedBytesRef.current=0;
         const thumbnailMetadata = await uploadFileToCloudinary(thumbnail,uploadCredentials.data.data,throttledSetProgress);
-        console.log("thumbnail size: ",(thumbnail.size/(1032*1032)).toPrecision(2));
+        // console.log("thumbnail size: ",(thumbnail.size/(1032*1032)).toPrecision(2));
 
         //save the metadata to the backend
         const metadata = {

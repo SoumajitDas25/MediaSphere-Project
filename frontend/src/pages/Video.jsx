@@ -8,10 +8,11 @@ import {useUserEvents,useVideoEvents} from "../events/hooks"
 
 const Video = () => {
 
-    let {videoId} = useParams();
+    let {videoId:paramVideoId} = useParams();
     const navigate = useNavigate();
     const [loading,setLoading] = useState(true);
     const [data,setData] = useState(null);
+    const [videoId,setVideoId] = useState(paramVideoId);
     const [videoOwner,setVideoOwner] = useState(null);
     const [isLiked,setIsLiked] = useState(null);
     const [likeCount,setLikeCount] = useState(0);
@@ -142,6 +143,11 @@ const Video = () => {
         }
     }
 
+    //sync videoId state with videoID param
+    useEffect(()=>{
+      setVideoId(paramVideoId);
+    },[paramVideoId])
+
     useEffect(()=>{
       //load video details
       getVideoDetails();
@@ -149,7 +155,7 @@ const Video = () => {
 
     useUserEvents({
       data:{
-        userId:(data && data.owner && data.owner._id)?data.owner._id:null
+        userId: (data && data.owner && data.owner._id)?data.owner._id:null
       },
       listeners:{
         updateSubscriberCount:(payload)=>{

@@ -10,19 +10,24 @@ const listenEvents = [ //only those events for which data should be updated in r
             'updateSubscriptionCount',
             'updateVideoCount',
             'updateTweetCount',
-            'updatePlaylistCount'
+            'updatePlaylistCount',
+            'reloadVideoList',
+            'reloadTweetList',
+            'reloadPlaylistList'
         ]
     },
     {
         namePrefix:"video",
         names: [ 
             'updateViewCount',
-            'updateVideoLikeCount',
+            'updateCommentCount',
+            'updateReplyCount',
             'updateIsVideoLiked',
+            'updateVideoLikeCount',
             'updateCommentLikeCount',
             'updateReplyLikeCount',
-            'updateCommentCount',
-            'updateReplyCount'
+            'reloadCommentList',
+            'reloadReplyList'
         ]
     }
 ];

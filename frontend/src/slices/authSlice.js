@@ -9,6 +9,7 @@ const initialState = {
     hasTokens: null,
     isTokenExpired: null,
     user: null,
+    isSocketConnected: false,
     loading: true,
     error: null
 }
@@ -55,6 +56,7 @@ export const verifyAndGetUserThunk = createAsyncThunk(
             {
                 //when user is successfully fetched
                 console.log('Sucessfullly Fetched User without refreshing tokens');
+                console.log(response1.data);
                 return response1.data;
             }
         }
@@ -71,7 +73,7 @@ export const loginThunk = createAsyncThunk(
         try
         {
             const response = await login(data);
-            console.log(response.data);
+            // console.log(response.data);
             if (response.status < 200 || response.status >= 300) 
             {
                 return rejectWithValue(response.data);
@@ -94,7 +96,7 @@ export const logoutThunk = createAsyncThunk(
         {
             
             const response = await logout();
-            console.log(response.data);
+            // console.log(response.data);
             if (response.status < 200 || response.status >= 300) 
             {
                 // console.log(data.error);
@@ -113,7 +115,11 @@ export const logoutThunk = createAsyncThunk(
 const authSlice = createSlice({
     name: 'auth',
     initialState,
-    reducers: {},
+    reducers: {
+        setIsSocketConnected: (state,action)=>{
+            state.isSocketConnected = action.payload;
+        }
+    },
     extraReducers: (builder)=>{
 
         //login
@@ -204,4 +210,5 @@ const authSlice = createSlice({
     }
 });
 
+export const {setIsSocketConnected} = authSlice.actions;
 export default authSlice.reducer;

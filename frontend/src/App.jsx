@@ -5,8 +5,7 @@ import { useEffect, useState } from 'react';
 import { verifyAndGetUserThunk } from './slices/authSlice';
 import { setUser } from './slices/userSlice';
 import { Error } from './components';
-// import {initializeSocketConnection,getSocket} from './sockets/socket.config';
-import {initSocketManager} from './sockets/socketManager';
+import {initSocketManager,disconnectSocket} from './sockets/socketManager';
 
 const App = () => {
 
@@ -49,8 +48,11 @@ const App = () => {
   },[user]);
 
   useEffect(() => {
-    initSocketManager(); //intitialize socket connection upon app load
-  },[]);
+    if(isloggedIn)
+      initSocketManager(); //intitialize socket
+    else
+      disconnectSocket(); //destroy socket
+  },[isloggedIn]);
 
   useEffect(()=>{
     if(theme === 'light')

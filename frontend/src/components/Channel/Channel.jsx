@@ -26,6 +26,7 @@ const Channel = () => {
     const [loading,setLoading] = useState(true);
     const [isSubscribeButtonloading,setIsSubscribeButtonLoading] = useState(false);
     const {isCropperOpened,image:cropImage,aspectRatio:cropAspectRatio,cropSource,isCompleted:isCropCompleted,error:cropError} = useSelector(state=>state.crop);
+    const listRef = useRef(null);
 
     const {getUserChannelProfile,updateAvatar,updateCoverImage} = userAPI;
     const {getUserVideos} = videoAPI;
@@ -249,6 +250,18 @@ const Channel = () => {
             },
             updateVideoCount:(payload)=>{
                 setVideosCount(payload);
+            },
+            reloadVideoList:(payload)=>{
+                listRef.current.reload(payload);
+                console.log("reloadVideoList: ",payload);
+            },
+            reloadTweetList:(payload)=>{
+                listRef.current.reload(payload);
+                console.log("reloadTweetList: ",payload);
+            },
+            reloadPlaylistList:(payload)=>{
+                listRef.current.reload(payload);
+                console.log("reloadPlaylistList: ",payload);
             }
         }
     });
@@ -406,6 +419,7 @@ const Channel = () => {
                         isPaginationEnabled={true}  
                         fetchPaginatedData={loadContentData}
                         dataLimitPerPage={6}
+                        ref={listRef}
                         allowDelayLoad={true}
                         delayLoadDurationInMs={700}
                         />

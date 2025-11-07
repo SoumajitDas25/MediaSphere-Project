@@ -248,17 +248,19 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while creating video doc entry in db");
     }
 
-    
-    //send the updateVideoCount event
+    //send updateVideoCount event
     const updatedVideoCount = await Video.countDocuments({
         owner: req.user._id
     });
     eventBus.emit("user:updateVideoCount",{id:req.user._id,data:updatedVideoCount});
 
+    //send reloadVideoList event
+    eventBus.emit("user:reloadVideoList",{id:req.user._id,data:'insertOne'});
+
     //send the video obj as response
     res.status(201)
     .json(
-        new ApiResponse(201,{},"Video Published Successfully")
+        new ApiResponse(201,video,"Video Published Successfully")
     );
 })
 

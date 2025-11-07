@@ -11,6 +11,7 @@ const initIOManager = () => {
         console.log("🟢 Socket connected:", socket.id);
     
         socket.on("disconnect", () => {
+          //disconnection(either by mannaul logout or due to frontend crash) will auto-remove the socket from all its joined rooms.
           console.log("🔴 Socket disconnected:", socket.id);
         });
 

@@ -1,5 +1,5 @@
 import useUserEvents from "./useUserEvents";
-import useVideoEvents from "./useVideoEvent";
+import useVideoEvents from "./useVideoEvents";
 
 export {
     useUserEvents,

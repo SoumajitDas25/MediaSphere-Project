@@ -4,9 +4,22 @@ import mitt from 'mitt';
 const createEventBus = () => {
 
     const emitter = mitt();
-    emitter.hasListeners = (eventName) => {
-        return Boolean(emitter.all.has(eventName) && emitter.all.get(eventName).length > 0);
+    
+    emitter.hasListeners = (eventName, handler) => {
+        const listeners = emitter.all.get(eventName);
+        if (!listeners) 
+            return false;
+
+        // If specific handler is passed, check if it's in the listeners list
+        if (handler) 
+        {
+            return listeners.includes(handler);
+        }
+
+        // Otherwise, just check if the event has any listeners at all
+        return listeners.length > 0;
     };
+    
     return emitter;
 }
 

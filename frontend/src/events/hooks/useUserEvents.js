@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import eventBus from '../eventBus';
+import { useSelector } from 'react-redux';
 
 const useUserEvents = ({ 
   data={
@@ -14,80 +15,113 @@ const useUserEvents = ({
     updateSubscriptionCount:null,
     updateVideoCount:null,
     updateTweetCount:null,
-    updatePlaylistCount:null
+    updatePlaylistCount:null,
+    reloadVideoList:null,
+    reloadTweetList:null,
+    reloadPlaylistList:null
   }
 }) => {
   
   const eventNamePrefix = "user";
   const {userId} =data;
-  const {updateChannelName,updateEmail,updateAvatar,updateCoverImage,updateSubscriberCount,updateSubscriptionCount,updateVideoCount,updateTweetCount,updatePlaylistCount} = listeners;
+  const {updateChannelName,updateEmail,updateAvatar,updateCoverImage,updateSubscriberCount,updateSubscriptionCount,updateVideoCount,updateTweetCount,updatePlaylistCount,reloadVideoList,reloadTweetList,reloadPlaylistList} = listeners;
+  const isSocketConnected = useSelector(state=>state.auth.isSocketConnected);
 
   useEffect(() => {
 
-    console.log(userId);
+    // console.log(userId);
 
-    if(userId)
+    //join event room only if socket is connected & id is available
+    if(isSocketConnected && userId)
     {
-        //join event room
-        eventBus.emit(`${eventNamePrefix}:joinRoom`,userId);
-
-        //add event listeners
-        if (updateChannelName && !eventBus.hasListeners(`${eventNamePrefix}:updateChannelName`)) 
-          eventBus.on(`${eventNamePrefix}:updateChannelName`, updateChannelName);
-
-        if (updateEmail && !eventBus.hasListeners(`${eventNamePrefix}:updateEmail`)) 
-          eventBus.on(`${eventNamePrefix}:updateEmail`,updateEmail);
-
-        if (updateAvatar && !eventBus.hasListeners(`${eventNamePrefix}:updateAvatar`)) 
-          eventBus.on(`${eventNamePrefix}:updateAvatar`, updateAvatar);
-
-        if (updateCoverImage && !eventBus.hasListeners(`${eventNamePrefix}:updateCoverImage`)) 
-          eventBus.on(`${eventNamePrefix}:updateCoverImage`, updateCoverImage);
-
-        if (updateSubscriberCount && !eventBus.hasListeners(`${eventNamePrefix}:updateSubscriberCount`)) 
-          eventBus.on(`${eventNamePrefix}:updateSubscriberCount`, updateSubscriberCount);
-
-        if (updateSubscriptionCount && !eventBus.hasListeners(`${eventNamePrefix}:updateSubscriptionCount`)) 
-          eventBus.on(`${eventNamePrefix}:updateSubscriptionCount`, updateSubscriptionCount);
-
-        if (updateVideoCount && !eventBus.hasListeners(`${eventNamePrefix}:updateVideoCount`)) 
-          eventBus.on(`${eventNamePrefix}:updateVideoCount`, updateVideoCount);
-
-        if (updateTweetCount && !eventBus.hasListeners(`${eventNamePrefix}:updateTweetCount`)) 
-          eventBus.on(`${eventNamePrefix}:updateTweetCount`, updateTweetCount);
-
-        if (updatePlaylistCount && !eventBus.hasListeners(`${eventNamePrefix}:updatePlaylistCount`)) 
-          eventBus.on(`${eventNamePrefix}:updatePlaylistCount`, updatePlaylistCount);
+      eventBus.emit(`${eventNamePrefix}:joinRoom`,userId);
+      console.log(`join ${eventNamePrefix} room`);
     }
+
+    //add event listeners
+    if (updateChannelName && !eventBus.hasListeners(`${eventNamePrefix}:updateChannelName`,updateChannelName)) 
+      eventBus.on(`${eventNamePrefix}:updateChannelName`, updateChannelName);
+
+    if (updateEmail && !eventBus.hasListeners(`${eventNamePrefix}:updateEmail`,updateEmail)) 
+      eventBus.on(`${eventNamePrefix}:updateEmail`,updateEmail);
+
+    if (updateAvatar && !eventBus.hasListeners(`${eventNamePrefix}:updateAvatar`,updateAvatar)) 
+      eventBus.on(`${eventNamePrefix}:updateAvatar`, updateAvatar);
+
+    if (updateCoverImage && !eventBus.hasListeners(`${eventNamePrefix}:updateCoverImage`,updateCoverImage)) 
+      eventBus.on(`${eventNamePrefix}:updateCoverImage`, updateCoverImage);
+
+    if (updateSubscriberCount && !eventBus.hasListeners(`${eventNamePrefix}:updateSubscriberCount`,updateSubscriberCount)) 
+      eventBus.on(`${eventNamePrefix}:updateSubscriberCount`, updateSubscriberCount);
+
+    if (updateSubscriptionCount && !eventBus.hasListeners(`${eventNamePrefix}:updateSubscriptionCount`,updateSubscriptionCount)) 
+      eventBus.on(`${eventNamePrefix}:updateSubscriptionCount`, updateSubscriptionCount);
+
+    if (updateVideoCount && !eventBus.hasListeners(`${eventNamePrefix}:updateVideoCount`,updateVideoCount)) 
+      eventBus.on(`${eventNamePrefix}:updateVideoCount`, updateVideoCount);
+
+    if (updateTweetCount && !eventBus.hasListeners(`${eventNamePrefix}:updateTweetCount`,updateTweetCount)) 
+      eventBus.on(`${eventNamePrefix}:updateTweetCount`, updateTweetCount);
+
+    if (updatePlaylistCount && !eventBus.hasListeners(`${eventNamePrefix}:updatePlaylistCount`,updatePlaylistCount)) 
+      eventBus.on(`${eventNamePrefix}:updatePlaylistCount`, updatePlaylistCount);
+
+    if (reloadVideoList && !eventBus.hasListeners(`${eventNamePrefix}:reloadVideoList`,reloadVideoList)) 
+      eventBus.on(`${eventNamePrefix}:reloadVideoList`, reloadVideoList);
+
+    if (reloadTweetList && !eventBus.hasListeners(`${eventNamePrefix}:reloadTweetList`,reloadTweetList)) 
+      eventBus.on(`${eventNamePrefix}:reloadTweetList`, reloadTweetList);
+
+    if (reloadPlaylistList && !eventBus.hasListeners(`${eventNamePrefix}:reloadPlaylistList`,reloadPlaylistList)) 
+      eventBus.on(`${eventNamePrefix}:reloadPlaylistList`, reloadPlaylistList);
 
     return () => {
-        if(userId)
-        {
-            //leave event room
-            eventBus.emit(`${eventNamePrefix}:leaveRoom`,userId);
 
-            //remove event listeners
-            if (updateChannelName) 
-            eventBus.off(`${eventNamePrefix}:updateChannelName`);
-            if (updateEmail) 
-            eventBus.off(`${eventNamePrefix}:updateEmail`);
-            if (updateAvatar) 
-            eventBus.off(`${eventNamePrefix}:updateAvatar`);
-            if (updateCoverImage) 
-            eventBus.off(`${eventNamePrefix}:updateCoverImage`);
-            if (updateSubscriberCount) 
-            eventBus.off(`${eventNamePrefix}:updateSubscriberCount`);
-            if (updateSubscriptionCount) 
-            eventBus.off(`${eventNamePrefix}:updateSubscriptionCount`);
-            if (updateVideoCount) 
-            eventBus.off(`${eventNamePrefix}:updateVideoCount`);
-            if (updateTweetCount) 
-            eventBus.off(`${eventNamePrefix}:updateTweetCount`);
-            if (updatePlaylistCount) 
-            eventBus.off(`${eventNamePrefix}:updatePlaylistCount`);
-        };
-    }
-}, [userId]);
+      //leave event room only if socket is connected & Id is available
+      if(isSocketConnected && userId)
+      {
+        eventBus.emit(`${eventNamePrefix}:leaveRoom`,userId);
+        console.log(`leave ${eventNamePrefix} room`);
+      }
+
+      //remove event listeners
+      if (updateChannelName && eventBus.hasListeners(`${eventNamePrefix}:updateChannelName`,updateChannelName)) 
+        eventBus.off(`${eventNamePrefix}:updateChannelName`,updateChannelName);
+
+      if (updateEmail && eventBus.hasListeners(`${eventNamePrefix}:updateEmail`,updateEmail)) 
+        eventBus.off(`${eventNamePrefix}:updateEmail`,updateEmail);
+
+      if (updateAvatar && eventBus.hasListeners(`${eventNamePrefix}:updateAvatar`,updateAvatar)) 
+        eventBus.off(`${eventNamePrefix}:updateAvatar`,updateAvatar);
+
+      if (updateCoverImage && eventBus.hasListeners(`${eventNamePrefix}:updateCoverImage`,updateCoverImage)) 
+        eventBus.off(`${eventNamePrefix}:updateCoverImage`,updateCoverImage);
+
+      if (updateSubscriberCount && eventBus.hasListeners(`${eventNamePrefix}:updateSubscriberCount`,updateSubscriberCount)) 
+        eventBus.off(`${eventNamePrefix}:updateSubscriberCount`,updateSubscriberCount);
+
+      if (updateSubscriptionCount && eventBus.hasListeners(`${eventNamePrefix}:updateSubscriptionCount`,updateSubscriptionCount)) 
+        eventBus.off(`${eventNamePrefix}:updateSubscriptionCount`,updateSubscriptionCount);
+
+      if (updateVideoCount && eventBus.hasListeners(`${eventNamePrefix}:updateVideoCount`,updateVideoCount)) 
+        eventBus.off(`${eventNamePrefix}:updateVideoCount`,updateVideoCount);
+
+      if (updateTweetCount && eventBus.hasListeners(`${eventNamePrefix}:updateTweetCount`,updateTweetCount)) 
+        eventBus.off(`${eventNamePrefix}:updateTweetCount`,updateTweetCount);
+
+      if (updatePlaylistCount && eventBus.hasListeners(`${eventNamePrefix}:updatePlaylistCount`,updatePlaylistCount)) 
+        eventBus.off(`${eventNamePrefix}:updatePlaylistCount`,updatePlaylistCount);
+
+      if (reloadVideoList && eventBus.hasListeners(`${eventNamePrefix}:reloadVideoList`,reloadVideoList)) 
+        eventBus.off(`${eventNamePrefix}:reloadVideoList`,reloadVideoList);
+
+      if (reloadTweetList && eventBus.hasListeners(`${eventNamePrefix}:reloadTweetList`,reloadTweetList)) 
+        eventBus.off(`${eventNamePrefix}:reloadTweetList`,reloadTweetList);
+
+      if (reloadPlaylistList && eventBus.hasListeners(`${eventNamePrefix}:reloadPlaylistList`,reloadPlaylistList)) 
+        eventBus.off(`${eventNamePrefix}:reloadPlaylistList`,reloadPlaylistList);
+    };
+  }, [isSocketConnected,userId]);
 };
 
 export default useUserEvents;

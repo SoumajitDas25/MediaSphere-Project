@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import { socketAuthMiddleware } from "../middlewares/socketAuthMiddleware.js";
 
 let ioInstance;
 
@@ -10,6 +11,8 @@ const initIO = (httpServer) =>{
         credentials: true,
         }
     });
+
+    io.use(socketAuthMiddleware); //socket authentication middleware
 
     ioInstance = io;
     return io;

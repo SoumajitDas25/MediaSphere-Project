@@ -159,7 +159,7 @@ const CommentPanel = ({
                         }}
                         >
                             {
-                                user.avatar?
+                                user && user.avatar?
                                 <img 
                                 src={user.avatar} 
                                 alt="Video Thumbnail" 
@@ -245,7 +245,7 @@ const CommentPanel = ({
                             }}
                             >
                                 {
-                                    user.avatar?
+                                    user && user.avatar?
                                     <img 
                                     src={user.avatar} 
                                     alt="Video Thumbnail" 
