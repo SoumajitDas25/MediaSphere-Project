@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UploadIcon } from "../../assets/icons";
-import {Button,Modal} from "../";
+import {Button,Input,Modal, TextArea} from "../";
 import { useDispatch } from "react-redux";
 import { startUpload } from '../../slices/uploadSlice';
-import { useForm } from "react-hook-form";
+import { useForm,Controller } from "react-hook-form";
 
 const UploadVideoModal = ({setIsModalOpened}) => {
 
@@ -15,7 +15,8 @@ const UploadVideoModal = ({setIsModalOpened}) => {
         register,
         handleSubmit,
         formState: { errors },
-      } = useForm({ mode: onchange });
+        control
+      } = useForm({ mode: onchange});
 
     const handleFileChange = (event) => {
         const file = event.target.files[0]; // Get the selected file
@@ -103,10 +104,10 @@ const UploadVideoModal = ({setIsModalOpened}) => {
                     htmlFor="upload-video"
                     className="cursor-pointer"
                 >
-                    <input type="file" 
+                    <Input type="file" 
                     accept="video/*"
                     id="upload-video" 
-                    
+                    bgColor="bg-transparent"
                     className="sr-only" 
                     {...register("video",{
                       required:"Video is required",
@@ -127,12 +128,12 @@ const UploadVideoModal = ({setIsModalOpened}) => {
                 Thumbnail
                 <sup>*</sup>
               </label>
-              <input
+              <Input
                 id="thumbnail"
                 type="file" 
                 accept="image/*"
-                className="w-full border p-1 file:mr-4 file:border-none file:bg-color-yellow  file:text-black file:font-semibold file:px-4 file:py-2 file:rounded-lg file:text-[4vw] file:sm:text-[1rem] file:cursor-pointer 
-                border-light-font_color_light dark:border-light-btn1_color rounded-lg" 
+                className="px-2 py-1 file:mr-4 file:border-none file:bg-color-yellow file:text-black file:font-semibold file:px-4 file:py-2 file:rounded-lg file:text-[4vw] file:sm:text-[1rem] file:cursor-pointer" 
+                bgColor="bg-transparent"
                 {...register("thumbnail",{
                   required:"Thumbnail is required"
                 })}
@@ -148,10 +149,11 @@ const UploadVideoModal = ({setIsModalOpened}) => {
                 Title
                 <sup>*</sup>
               </label>
-              <input
+              <Input
                 id="title"
                 type="text"
-                className="w-full border bg-transparent px-2 py-1 outline-none border-light-font_color_light dark:border-light-btn1_color rounded-lg" 
+                className="px-2 py-1"
+                bgColor="bg-transparent"
                 {...register("title",{
                   required:"Title is required"
                 })}
@@ -167,13 +169,24 @@ const UploadVideoModal = ({setIsModalOpened}) => {
                 Description
                 <sup>*</sup>
               </label>
-              <textarea
+              <Controller
+              name="description"
+              control={control}
+              render={({ field }) => (
+                <TextArea
                 id="desc"
-                className="h-40 w-full resize-none border bg-transparent px-2 py-1 outline-none border-light-font_color_light dark:border-light-btn1_color rounded-lg" 
+                className="h-80 px-2 py-1"
+                bgColor="bg-transparent"
+                value={field.value}
+                setValue={field.onChange}
+                limit={500}
                 {...register("description",{
                   required:"Description is required"
                 })}
-              ></textarea>
+                />
+              )}
+              />
+              
               {/* description validation error message */}
               {errors.description && (
                     <p className="text-red-500">{errors.description.message}</p>

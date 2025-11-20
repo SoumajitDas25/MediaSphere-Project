@@ -15,94 +15,202 @@ import eventBus from "../utils/eventBus.js"
 const assetFolderName ="videos";
 
 //TODO
-const getAllVideos = asyncHandler(async (req, res) => {
+// const getAllVideos = asyncHandler(async (req, res) => {
 
-    let page,limit,query,sortBy,sortType,userId;
-    if(req.query && (req.query.page && req.query.limit && req.query.query && req.query.sortBy && req.query.sortType && req.query.userId))
-    {
-        page = Number(req.query.page);
-        limit = Number(req.query.limit);
-        query = String(req.query.query);
-        sortBy = String(req.query.sortBy);
-        sortType = String(req.query.sortType);
-        userId = String(req.query.userId);
-    }
-    // console.log(page,limit,query,sortBy,sortType,userId);
-    if(!(page && limit && query && sortBy && sortType && userId))
-    {
-        throw new ApiError(400,"Request Queries are required");
-    }
-    //TODO: get all videos based on query, sort,pagination    
+//     let page,limit,query,sortBy,sortType,userId;
+//     if(req.query && (req.query.page && req.query.limit && req.query.query && req.query.sortBy && req.query.sortType && req.query.userId))
+//     {
+//         page = Number(req.query.page);
+//         limit = Number(req.query.limit);
+//         query = String(req.query.query);
+//         sortBy = String(req.query.sortBy);
+//         sortType = String(req.query.sortType);
+//         userId = String(req.query.userId);
+//     }
+//     // console.log(page,limit,query,sortBy,sortType,userId);
+//     if(!(page && limit && query && sortBy && sortType && userId))
+//     {
+//         throw new ApiError(400,"Request Queries are required");
+//     }
+//     //TODO: get all videos based on query, sort,pagination    
     
-        const matchStage = {
-            $match: {}
-        };
+//         const matchStage = {
+//             $match: {}
+//         };
     
-        // Build filter object
-        if (query) {
-            matchStage.$match.$or = [
-                { title: { $regex: query, $options: 'i' } },
-                { description: { $regex: query, $options: 'i' } }
-            ];
-        }
-        if (userId) {
-            matchStage.$match.owner = userId;
-        }
+//         // Build filter object
+//         if (query) {
+//             matchStage.$match.$or = [
+//                 { title: { $regex: query, $options: 'i' } },
+//                 { description: { $regex: query, $options: 'i' } }
+//             ];
+//         }
+//         if (userId) {
+//             matchStage.$match.owner = userId;
+//         }
     
-        // Build sort object
-        const sortStage = {
-            $sort: { [sortBy]: sortType === 'asc' ? 1 : -1 }
-        };
+//         // Build sort object
+//         const sortStage = {
+//             $sort: { [sortBy]: sortType === 'asc' ? 1 : -1 }
+//         };
     
-        // Pagination stages
-        const skipStage = {
-            $skip: (page - 1) * limit
-        };
+//         // Pagination stages
+//         const skipStage = {
+//             $skip: (page - 1) * limit
+//         };
     
-        const limitStage = {
-            $limit: Number(limit)
-        };
+//         const limitStage = {
+//             $limit: Number(limit)
+//         };
     
-        // Count stage
-        const countStage = {
-            $count: "totalVideos"
-        };
+//         // Count stage
+//         const countStage = {
+//             $count: "totalVideos"
+//         };
 
-        // Aggregate pipeline for getting paginated videos
-        const videosPipeline = [
-            matchStage,
-            sortStage,
-            skipStage,
-            limitStage
-        ];
+//         // Aggregate pipeline for getting paginated videos
+//         const videosPipeline = [
+//             matchStage,
+//             sortStage,
+//             skipStage,
+//             limitStage
+//         ];
     
-        // Aggregate pipeline for counting total documents
-        const countPipeline = [
-            matchStage,
-            countStage
-        ];
+//         // Aggregate pipeline for counting total documents
+//         const countPipeline = [
+//             matchStage,
+//             countStage
+//         ];
     
-        const videosPromise = Video.aggregate(videosPipeline);
-        const countPromise = Video.aggregate(countPipeline);
+//         const videosPromise = Video.aggregate(videosPipeline);
+//         const countPromise = Video.aggregate(countPipeline);
     
-        const [videos, totalCount] = await Promise.all([videosPromise, countPromise]);
+//         const [videos, totalCount] = await Promise.all([videosPromise, countPromise]);
     
-        const totalVideos = totalCount[0]?.totalVideos || 0;
+//         const totalVideos = totalCount[0]?.totalVideos || 0;
     
-        res.status(200)
-        .json(
-            new ApiResponse(
-                200,
-                {
-                    totalVideos,
-                    currentPage: Number(page),
-                    totalPages: Math.ceil(totalVideos / limit),
-                    videos
-                },
-                "Videos Fetched Successfully"
-            )
-        );
-})
+//         res.status(200)
+//         .json(
+//             new ApiResponse(
+//                 200,
+//                 {
+//                     totalVideos,
+//                     currentPage: Number(page),
+//                     totalPages: Math.ceil(totalVideos / limit),
+//                     videos
+//                 },
+//                 "Videos Fetched Successfully"
+//             )
+//         );
+// })
+
+const getAllVideos = asyncHandler(async (req,res)=>{
+
+    let data;
+    //fetch page & limit from req query
+    const {page = 1, limit = 9} = req.query;
+    // console.log(page,limit);
+
+
+    //get all vidoes
+    const totalVideos = await Video.find().countDocuments();
+    if(!totalVideos)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total Videos");
+    }
+    if(totalVideos < 1)
+    {
+        data={
+            totalVideos:0,
+            paginatedContent:null,
+            totalPages:0
+        }
+    }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalVideos / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
+
+        const paginatedVideos = await Video.aggregate([
+            {         
+                $sort: { //sort the documents with the most recent to least recent
+                    createdAt: 1 
+                }
+            },
+            {
+                //No. of docs to skip
+                $skip: Number(page)<1 ? 0: ((Number(page) - 1) * Number(limit))
+            },
+            {   //No. of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $lookup: { //get the owner doc for each of the comment doc
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                        {
+                            $project: {
+                                _id: 1,
+                                username: 1,
+                                channelName: 1,
+                                avatar: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields: { //store the owner obj from owner[]
+                    owner: {
+                        $first: "$owner"
+                    }
+                }
+            },
+            {
+                $project: {
+                    thumbnail: 1,
+                    title: 1,
+                    duration: 1,
+                    owner: 1,
+                    viewsCount: 1,
+                    // likesCount: 1,
+                    // commentsCount: 1,
+                    createdAt: 1,
+                    updatedAt: 1
+                }
+            }
+        ]);
+
+        if(!paginatedVideos)
+        {
+            throw new ApiError(500,"Something went wrong while fetching Video documents")
+        }
+
+        data={
+            totalVideos: totalVideos,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedVideos,
+        };
+    }
+    
+    //send the data as response
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            data,
+            "Paginated Videos fetched Successfully"
+        )
+    );
+});
 
 const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
 
@@ -424,8 +532,24 @@ const getVideoById = asyncHandler(async (req, res) => {
             }
         },
         {
-            $addFields: { //if isLikedData[] contains data, then add isliked as true else false
-                isLiked: {
+            // Only fetch the first playlist doc where it contains the videoId in its videos[]
+            $lookup: {
+                from: "playlists",
+                let: { videoId: "$_id" },
+                pipeline: [
+                    { $match: { $expr: { $in: ["$$videoId", "$videos"] } } },
+                    { $limit: 1 }, // grab only the first playlist doc
+                    { $project: { _id: 1 }} // keep it minimal
+                ],
+                as: "firstPlaylistContainingVideo"
+            }
+        },
+        {
+            $addFields: { 
+                owner: { //store the first element(obj) of owner[] field
+                    $first: "$owner"
+                },
+                isLiked: { //if isLikedData[] contains data, then add isliked as true else false
                     $cond: { 
                         if: { 
                             $gt: [
@@ -434,19 +558,24 @@ const getVideoById = asyncHandler(async (req, res) => {
                         then: true, 
                         else: false 
                     }
-                }
-            }
-        },
-        {
-            $addFields: { //store the first element(obj) of owner[] field
-                owner: {
-                    $first: "$owner"
+                },
+                isVideoPresentInPlaylist:{
+                    //if firstPlaylistContainingVideo[] contains data, then add isVideoPresentInPlaylist as true else false
+                    $cond: { 
+                        if: { 
+                            $gt: [
+                                { $size: "$firstPlaylistContainingVideo" },0] 
+                        }, 
+                        then: true, 
+                        else: false 
+                    }
                 }
             }
         },
         {
             $project: {
-                isLikedData: 0
+                isLikedData: 0,
+                firstPlaylistContainingVideo: 0
             }
         }
     ]);

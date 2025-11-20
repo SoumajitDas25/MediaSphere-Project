@@ -176,7 +176,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         };
     }
 
-    //send the paginatedComments[] as response
+    //send the data as response
     res.status(200)
     .json(
         new ApiResponse(
@@ -190,6 +190,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 const getTweetComments = asyncHandler(async (req, res) => {
 
+    let data;
     const {page = 1, limit = 10} = req.query
 
     //get tweetId from req params
@@ -217,92 +218,149 @@ const getTweetComments = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while fetching Total Tweet Comments");
     }
 
-    //check if page no. exceeds max page no.
-    let totalPages = Math.ceil(totalComments.length / Number(limit));
-    if(totalPages < Number(page))
+    if(totalComments.length < 1)
     {
-        throw new ApiError(400,"Page Number exceeds Max Page Number");
+        data={
+            totalComments:0,
+            paginatedContent:null,
+            totalPages:0
+        }
     }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalComments.length / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
 
-    //get paginated comments for the tweet
-    const paginatedComments = await Comment.aggregate([
-        {
-            $match: { //get all comment docs for the tweet
-                tweet: new mongoose.Types.ObjectId(String(tweetId))
-            }
-        },
-        {   //No of docs to skip
-            $skip: (Number(page) - 1) * Number(limit)
-        },
-        {   //Max No of docs to be fetched
-            $limit: Number(limit)
-        },
-        {
-            $lookup: { //get the owner doc for each of the comment doc
-                from: "users",
-                localField: "owner",
-                foreignField: "_id",
-                as: "owner",
-                pipeline: [
-                    {
-                        $project: {
-                            username: 1,
-                            fullName: 1,
-                            avatar: 1,
-                            coverImage: 1
+        //get paginated comments for the tweet
+        const paginatedComments = await Comment.aggregate([
+            {
+                $match: { //get all comment docs for the tweet
+                    tweet: new mongoose.Types.ObjectId(String(tweetId))
+                }
+            },
+            {   //No of docs to skip
+                $skip: (Number(page) - 1) * Number(limit)
+            },
+            {   //Max No of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $lookup: { //get the like doc of the comment for the user if it exists
+                    from: "likes",
+                    let: { commentId: "$_id" }, // Reference the current commentId
+                    pipeline: [
+                        {
+                            $match:{
+                                $expr: {
+                                    $and: [
+                                        { 
+                                            $eq: ["$comment", "$$commentId"] 
+                                        },
+                                        { 
+                                            $eq: ["$likedBy", new mongoose.Types.ObjectId(String(req.user._id))] 
+                                        },
+                                        {
+                                            $eq:["$targetType","comment"]
+                                        }  
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "isLikedData",
+                }
+            },
+            {
+                $addFields: { //if isLikedData[] contains data, then add isliked as true else false
+                    isLiked: {
+                        $cond: { 
+                            if: { 
+                                $gt: [
+                                    { $size: "$isLikedData" },
+                                    0
+                                ] 
+                            }, 
+                            then: true, 
+                            else: false 
                         }
                     }
-                ]
-            }
-        },
-        {
-            $addFields: { //store the owner obj from owner[]
-                owner: {
-                    $first: "$owner"
+                }
+            },
+            {
+                $lookup: { //get the owner doc for each of the comment doc
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                        {
+                            $project: {
+                                username: 1,
+                                channelName: 1,
+                                avatar: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields: { //store the owner obj from owner[]
+                    owner: {
+                        $first: "$owner"
+                    }
+                }
+            },
+            {
+                $lookup: { //get all reply docs for each of the comment doc
+                    from: "replies",
+                    localField: "_id",
+                    foreignField: "comment",
+                    as: "repliesCount"
+                }
+            },
+            {
+                $addFields: { //calculate & store the no of reply docs for each of the comment doc
+                    repliesCount: {
+                        $size: "$repliesCount"
+                    }
+                }
+            },
+            {
+                $project: {
+                    content: 1,
+                    owner: 1,
+                    likesCount: 1,
+                    repliesCount: 1,
+                    isLiked: 1,
+                    createdAt: 1,
+                    updatedAt: 1
                 }
             }
-        },
-        {
-            $lookup: { //get all reply docs for each of the comment doc
-                from: "replies",
-                localField: "_id",
-                foreignField: "comment",
-                as: "repliesCount"
-            }
-        },
-        {
-            $addFields: { //calculate & store the no of reply docs for each of the comment doc
-                repliesCount: {
-                    $size: "$repliesCount"
-                }
-            }
-        },
-        {
-            $project: {
-                content: 1,
-                owner: 1,
-                likesCount: 1,
-                repliesCount: 1
-            }
-        }
-    ]);
+        ]);
 
-    if(!paginatedComments)
-    {
-        throw new ApiError(500,"Something went wrong while fetching Paginated Tweet Comments")
+        if(!paginatedComments)
+        {
+            throw new ApiError(500,"Something went wrong while fetching Paginated Tweet Comments")
+        }
+
+        data={
+            totalComments: totalComments.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedComments,
+        };
     }
 
-    //send the paginatedComments[] as response
+    //send the data as response
     res.status(200)
     .json(
         new ApiResponse(
             200,
-            {
-                totalComments: totalComments.length,
-                currentPage: Number(page),
-                totalPages,
-                paginatedComments,
-            },
+            data,
             "Paginated Tweet Comments fetched Successfully"
         )
     );
@@ -342,19 +400,26 @@ const addVideoComment = asyncHandler(async (req, res) => {
     }); 
     if(!comment)
     {
-        throw new ApiError(500,"Something went wrong while creating comment document in db");
+        throw new ApiError(500,"Something went wrong while creating comment document");
     }
 
-    //increment comment count by 1 in the video doc
-    video.commentsCount = video.commentsCount + 1;
-    const savedVideo = await video.save({validateBeforeSave:true});
-    if(!savedVideo)
+    //find the video doc & increment the comment count
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $inc: {
+                commentsCount: 1
+            }
+        },
+        {new: true}
+    );
+    if(!updatedVideo)
     {
-        throw new ApiError(500,"Something went wrong while saving updated video document in db");
+        throw new ApiError(500,"Something went wrong while updating video document");
     }
 
     //emit updateCommentCount event
-    eventBus.emit("video:updateCommentCount",{id:videoId,data:video.commentsCount});
+    eventBus.emit("video:updateCommentCount",{id:videoId,data:updatedVideo.commentsCount});
 
     //send the comment doc as response
     res.status(201)
@@ -364,6 +429,7 @@ const addVideoComment = asyncHandler(async (req, res) => {
 })
 
 const addTweetComment = asyncHandler(async (req,res) =>{
+
     //fetch tweetId from req params
     const { tweetId } = req.params
     if(!isValidObjectId(tweetId))
@@ -395,8 +461,26 @@ const addTweetComment = asyncHandler(async (req,res) =>{
     }); 
     if(!comment)
     {
-        throw new ApiError(500,"Something went wrong creating comment document in db");
+        throw new ApiError(500,"Something went wrong creating comment document");
     }
+
+    //find the tweet doc & increment the comment count
+    const updatedTweet = await Tweet.findByIdAndUpdate(
+        tweetId,
+        {
+            $inc: {
+                commentsCount: 1
+            }
+        },
+        {new: true}
+    );
+    if(!updatedTweet)
+    {
+        throw new ApiError(500,"Something went wrong while updating tweet document");
+    }
+
+    //emit updateCommentCount event
+    eventBus.emit("tweet:updateCommentCount",{id:tweetId,data:updatedTweet.commentsCount});
 
     //send the comment doc as response
     res.status(201)
@@ -461,6 +545,18 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(400,"Invalid comment Id");
     }
 
+    //get comment doc by id
+    const comment = await Comment.findById(commentId);
+    if(!comment)
+    {
+        throw new ApiError(400,"Invalid Comment Id");
+    }
+
+    if(!(comment.video || comment.tweet))
+    {
+        throw new ApiError(400,"Invalid Comment Id");
+    }
+
     //find & delete the comment doc by id
     const deletedComment = await Comment.findOneAndDelete(
         {
@@ -473,19 +569,46 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while deleting comment document");
     }
 
-    //find the video doc & decrement the comment count
-    const video = await Video.findByIdAndUpdate(
-        deletedComment.video,
-        {
-            $inc: {
-                commentsCount: -1
-            }
-        },
-        {new: true}
-    );
-    if(!video)
+    if(deletedComment.video && !deletedComment.tweet)
     {
-        throw new ApiError(200,"Something went wrong while decrementing comment count")
+        //find the video doc & decrement the comment count
+        const video = await Video.findByIdAndUpdate(
+            deletedComment.video,
+            {
+                $inc: {
+                    commentsCount: -1
+                }
+            },
+            {new: true}
+        );
+        if(!video)
+        {
+            throw new ApiError(500,"Something went wrong while decrementing comment count")
+        }
+    }
+    else
+    {
+        if(deletedComment.tweet && !deletedComment.video)
+        {
+            //find the tweet doc & decrement the comment count
+            const tweet = await Tweet.findByIdAndUpdate(
+                deletedComment.tweet,
+                {
+                    $inc: {
+                        commentsCount: -1
+                    }
+                },
+                {new: true}
+            );
+            if(!tweet)
+            {
+                throw new ApiError(500,"Something went wrong while decrementing comment count")
+            }
+        }
+        else
+        {
+            throw new ApiError(500,"Something went wrong while decrementing comment count")
+        }
     }
 
     //delete all the like docs for the comment(including the likes for the comment replies)

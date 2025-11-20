@@ -121,11 +121,15 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     eventBus.emit("user:updateSubscriberCount",{id:channelId,data:updatedOwnerSubscribers[0].subscriberCount});
     //emit updateSubcriptionCount event to channel viewer room
     eventBus.emit("user:updateSubscriptionCount",{id:req.user._id,data:updatedViewerSubscriptions[0].subscriptionCount});
+    //emit updateIsSubscribed event to channel viewer private room
+    eventBus.emit("private:user:updateIsSubscribed",{userId:req.user._id,id:req.user._id,data:!isChannelSubscribed});
 
     //send a success message as response
     res.status(200)
     .json(
-        new ApiResponse(200,{},"Subscription toggled Successfully")
+        new ApiResponse(200,{
+            isSubscribed:!isChannelSubscribed
+        },"Subscription toggled Successfully")
     );
 
 })

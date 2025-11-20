@@ -228,7 +228,7 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
                         if(dataRef.current.length<dataLimitPerPage)
                             targetPage = activeButtonIndex + 1; //current page
                         else
-                            targetPage = activeButtonIndex + 2; //next page
+                            targetPage = totalPaginationPages + 1; //next page
                     }
                     else
                         targetPage=1;
@@ -243,7 +243,10 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
                             targetPage = activeButtonIndex; //previous page
                     }
                     else
+                    {
                         targetPage=activeButtonIndex+1; //current page
+                    }
+                        
                     break;
             }
         }

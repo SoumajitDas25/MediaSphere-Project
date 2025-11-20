@@ -131,7 +131,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         }
 
         //emit updateVideoLikeCount event
-        eventBus.emit("video:updateVideoLikeCount",{id:videoId,data:video.likesCount});
+        eventBus.emit("video:updateVideoLikeCount",{id:videoId,data:video.likesCount},session);
+
+        //emit updateIsVideoLiked event
+        eventBus.emit("private:video:updateIsVideoLiked",{userId:req.user._id, id:videoId,data:!existingLike},session);
 
         //end the transaction via session
         await session.commitTransaction();
@@ -217,6 +220,12 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         {
             throw new ApiError(500,"Something went wrong while updating Tweet document");
         }
+
+        //emit updateTweetLikeCount event
+        eventBus.emit("tweet:updateTweetLikeCount",{id:tweetId,data:tweet.likesCount},session);
+
+        //emit updateIsTweetLiked event
+        eventBus.emit("private:tweet:updateIsTweetLiked",{userId:req.user._id, id:tweetId,data:!existingLike},session);
 
         //end the transaction via session
         await session.commitTransaction();

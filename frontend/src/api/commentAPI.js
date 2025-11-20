@@ -23,11 +23,48 @@ const getVideoComments = async (videoId,page,limit) =>{
     }
 }
 
+const getTweetComments = async (tweetId,page,limit) =>{
+    try
+    {
+        const response =  await api(
+            `/tweet/${tweetId}`,
+            { //will be converted to query params
+                page:page,
+                limit:limit             
+            },
+            'GET'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 const addVideoComment = async (videoId,content) =>{
     try
     {
         const response =  await api(
             `/video/${videoId}`,
+            { 
+                content:content             
+            },
+            'POST'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const addTweetComment = async (tweetId,content) =>{
+    try
+    {
+        const response =  await api(
+            `/tweet/${tweetId}`,
             { 
                 content:content             
             },
@@ -77,7 +114,9 @@ const deleteComment = async (commentId) =>{
 
 export default {
     getVideoComments,
+    getTweetComments,
     addVideoComment,
+    addTweetComment,
     updateComment,
     deleteComment
 }

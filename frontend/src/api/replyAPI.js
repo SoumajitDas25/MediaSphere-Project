@@ -41,6 +41,24 @@ const addVideoCommentReply = async (commentId,repliedToId,content) =>{
     }
 }
 
+const addTweetCommentReply = async (commentId,repliedToId,content) =>{
+    try
+    {
+        const response =  await api(
+            `/tweet/${commentId}/${repliedToId}`,
+            { 
+                content:content            
+            },
+            'POST'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 const updateReply = async (replyId,content) =>{
     try
     {
@@ -78,6 +96,7 @@ const deleteReply = async (replyId) =>{
 export default {
     getCommentReplies,
     addVideoCommentReply,
+    addTweetCommentReply,
     updateReply,
     deleteReply
 }

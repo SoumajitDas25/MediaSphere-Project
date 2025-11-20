@@ -23,7 +23,7 @@ const Modal = ({
         >
 
           {/* header */}
-          <div className="flex items-center justify-between border-b p-4">
+          <div className="flex items-center justify-between border-b border-dark-bg_light dark:border-light-bg_light p-4">
             <h2 className="text-xl font-semibold">
               {heading}
             </h2>

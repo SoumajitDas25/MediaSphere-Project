@@ -1,6 +1,6 @@
-const listenEvents = [ //only those events for which data should be updated in real-time
+const publicEvents = [ //only those events for which data should be updated in real-time
     {
-        namePrefix:"user",
+        domain:"user",
         names: [
             'updateChannelName',
             'updateEmail',
@@ -17,13 +17,26 @@ const listenEvents = [ //only those events for which data should be updated in r
         ]
     },
     {
-        namePrefix:"video",
+        domain:"video",
         names: [ 
             'updateViewCount',
             'updateCommentCount',
             'updateReplyCount',
-            'updateIsVideoLiked',
             'updateVideoLikeCount',
+            'updateCommentLikeCount',
+            'updateReplyLikeCount',
+            'reloadCommentList',
+            'reloadReplyList'
+        ]
+    },
+    {
+        domain:"tweet",
+        names: [ 
+            'updateTweet',
+            'deleteTweet',
+            'updateCommentCount',
+            'updateReplyCount',
+            'updateTweetLikeCount',
             'updateCommentLikeCount',
             'updateReplyLikeCount',
             'reloadCommentList',
@@ -32,14 +45,49 @@ const listenEvents = [ //only those events for which data should be updated in r
     }
 ];
 
-const getListenEventNames = ()=> {
+const privateEvents = [ //only those events which needs syncing across all sockets of the user
+    {
+        domain:"user",
+        names: [
+            'updateIsSubscribed',
+        ]
+    },
+    {
+        domain:"video",
+        names: [ 
+            'updateIsVideoLiked',
+            'updateIsVideoPresentInPlaylist'
+        ]
+    },
+    {
+        domain:"tweet",
+        names: [ 
+            'updateIsTweetLiked'
+        ]
+    }
+]
+
+const getPublicListenEventNames = ()=> {
 
     const eventNames = [];
-    for(const obj of listenEvents)
+    for(const obj of publicEvents)
     {
         for(const name of obj.names)
         {
-            eventNames.push(`${obj.namePrefix}:${name}`)
+            eventNames.push(`${obj.domain}:${name}`)
+        }
+    }
+    return eventNames;
+}
+
+const getPrivateListenEventNames = ()=> {
+
+    const eventNames = [];
+    for(const obj of privateEvents)
+    {
+        for(const name of obj.names)
+        {
+            eventNames.push(`private:${obj.domain}:${name}`)
         }
     }
     return eventNames;
@@ -48,13 +96,13 @@ const getListenEventNames = ()=> {
 const getEmitEventNames = ()=> {
 
     const eventNames = [];
-    for(const obj of listenEvents)
+    for(const obj of publicEvents)
     {
-        eventNames.push(`${obj.namePrefix}:joinRoom`);
-        eventNames.push(`${obj.namePrefix}:leaveRoom`);
+        eventNames.push(`${obj.domain}:joinRoom`);
+        eventNames.push(`${obj.domain}:leaveRoom`);
     }
     return eventNames;
 }
 
 
-export { getEmitEventNames,getListenEventNames };
+export { getEmitEventNames,getPublicListenEventNames,getPrivateListenEventNames };

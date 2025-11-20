@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { connectionAPI, videoAPI, likeAPI } from '../api';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader,Button, CommentPanel,Like} from '../components';
-import {CommentIcon} from "../assets/icons"
+import { Loader,Button, CommentPanel,Like,AddVideoToPlaylistModal} from '../components';
+import {CommentIcon,PlaylistAddIcon,PlaylistAddedIcon} from "../assets/icons"
 import { useSelector } from 'react-redux';
 import {useUserEvents,useVideoEvents} from "../events/hooks"
 
@@ -18,8 +18,11 @@ const Video = () => {
     const [likeCount,setLikeCount] = useState(0);
     const [commentCount,setCommentCount] = useState(0);
     const [viewCount,setViewCount] = useState(0);
+    const [isSubscribed,setIsSubscribed] = useState(null);
     const [isSubscriptionButtonLoading,setIsSubscriptionButtonLoading] = useState(false);
     const [isCommentPanelExpanded,setIsCommentPanelExpanded] = useState(false);
+    const [isVideoPresentInPlaylist,setIsVideoPresentInPlaylist] = useState(null);
+    const [isAddVideoToPlaylistModalOpened,setIsAddVideoToPlaylistModalOpened] = useState(false);
     const userId = useSelector(state=>state.user.user?._id);
 
     const {getVideoById} = videoAPI;
@@ -72,6 +75,9 @@ const Video = () => {
             setLikeCount(response.data?.data?.likesCount);
             setCommentCount(response.data?.data?.commentsCount);
             setViewCount(response.data?.data?.viewsCount);
+            setIsSubscribed(response.data?.data?.owner?.isSubscribed);
+            setIsVideoPresentInPlaylist(response.data?.data?.isVideoPresentInPlaylist);
+            
             // console.log(response.data.data);
             return response.data.data;
         }
@@ -91,11 +97,8 @@ const Video = () => {
         {
             setIsSubscriptionButtonLoading(true);
             const response = await toggleSubscription(data.owner?._id);
-            console.log(response.data.data); 
-            setVideoOwner(state=>({
-                ...state,
-                isSubscribed:!state.isSubscribed
-            })); 
+            // console.log(response.data.data); 
+            setIsSubscribed(response.data?.data?.isSubscribed);
         }
         catch(error)
         {      
@@ -122,7 +125,7 @@ const Video = () => {
             setLikeCount(prev=>isLiked?prev-1:prev+1);
             setIsLiked(prev=>!prev);
             const response = await toggleVideoLike(data?._id);
-            console.log(response.data.data);  
+            // console.log(response.data.data);  
             const { likesCount, isLiked:isVideoLiked } = response.data.data;
 
             //sync with backend response to maintain consistency
@@ -157,7 +160,7 @@ const Video = () => {
       data:{
         userId: (data && data.owner && data.owner._id)?data.owner._id:null
       },
-      listeners:{
+      publicListeners:{
         updateSubscriberCount:(payload)=>{
           console.log("Subscriber Count: ",payload);
           setVideoOwner(prev=>({...prev,subscribersCount:payload}))
@@ -168,6 +171,14 @@ const Video = () => {
         updateChannelName:(payload)=>{
           setVideoOwner(prev=>({...prev,channelName:payload}))
         }
+      },
+      privateListeners:{
+        updateIsSubscribed:(payload)=>{
+          if(userId==payload.id)
+          {
+            setIsSubscribed(payload.data);          
+          }
+        }
       }
     });
 
@@ -175,7 +186,7 @@ const Video = () => {
       data:{
         videoId:videoId
       },
-      listeners:{
+      publicListeners:{
         updateViewCount:(payload)=>{
           setViewCount(payload);
         },
@@ -183,12 +194,24 @@ const Video = () => {
           console.log("Video Like Count: ",payload);
           setLikeCount(payload);
         },
-        updateIsVideoLiked:(payload)=>{
-          setIsLiked(payload);
-        },
         updateCommentCount:(payload)=>{
           console.log("Comment Count: ",payload);
           setCommentCount(payload);
+        }
+      },
+      privateListeners:{
+        updateIsVideoLiked:(payload)=>{
+          if(videoId === payload.id)
+          {
+            setIsLiked(payload.data);
+          }
+        },
+        updateIsVideoPresentInPlaylist:(payload)=>{
+          if(videoId === payload.id)
+          {
+            setIsVideoPresentInPlaylist(payload.data);
+            console.log("video added: ",payload.data);
+          }
         }
       }
     });
@@ -241,16 +264,16 @@ const Video = () => {
                             userId !== videoOwner._id && 
                             <Button 
                               fontSize='text-[0.7rem] sm:text-[0.8rem] md:text-[1rem]' 
-                              bgcolor={`${videoOwner.isSubscribed? 'bg-transparent hover:bg-dark-font_color_dark dark:hover:bg-light-bg_dark':'bg-color-yellow'}`} 
-                              textcolor={`${videoOwner.isSubscribed? 'text-light-font_color_dark dark:text-dark-font_color_dark hover:dark:text-light-font_color_dark':'text-light-font_color_dark'}`}
-                              className={`${videoOwner.isSubscribed && 'border border-light-font_color_dark dark:border-dark-font_color_dark'}`} 
+                              bgcolor={`${isSubscribed? 'bg-transparent hover:bg-dark-font_color_dark dark:hover:bg-light-bg_dark':'bg-color-yellow'}`} 
+                              textcolor={`${isSubscribed? 'text-light-font_color_dark dark:text-dark-font_color_dark hover:dark:text-light-font_color_dark':'text-light-font_color_dark'}`}
+                              className={`${isSubscribed && 'border border-light-font_color_dark dark:border-dark-font_color_dark'}`} 
                               onClick={(event)=>{
                                   event.stopPropagation();
                                   toggleSubscribe();
                               }}
                               isLoading={isSubscriptionButtonLoading}
                               >
-                                  {videoOwner.isSubscribed?'Unsubscribe':'Subscribe'}
+                                  {isSubscribed?'Unsubscribe':'Subscribe'}
                               </Button>
                           }
                               
@@ -259,6 +282,7 @@ const Video = () => {
                   </div>
             
                   <div className='flex flex-row justify-start items-center gap-4 text-[1.25rem] p-4 lg:px-4 lg:py-0'>
+
                     {/* Like Option */}
                     <div className='flex flex-row justify-center items-center gap-1 cursor-pointer'>
                       {/* Like Icon */}
@@ -269,6 +293,7 @@ const Video = () => {
                       {/* LikesCount */}
                       <span>{likeCount}</span>
                     </div>
+
                     {/* Comments Option */}
                     <div 
                     className='flex flex-row justify-center items-center gap-1 cursor-pointer md:hidden' 
@@ -280,6 +305,34 @@ const Video = () => {
                       {/* CommentsCount */}
                       <span>{commentCount}</span>
                     </div>
+
+                    {/* Add to playlist Option */}
+                    <div>
+                      <div 
+                      className='flex flex-row justify-center items-center gap-[0.1rem] cursor-pointer' 
+                      onClick={()=>setIsAddVideoToPlaylistModalOpened(true)}>
+                        {/* Playlist Add Icon */}
+                        <span className='text-[2rem]'>
+                          {
+                            isVideoPresentInPlaylist?<PlaylistAddedIcon/>:<PlaylistAddIcon/>
+                          }
+                        </span>
+                        <span className='text-[1rem]'>
+                          {
+                            isVideoPresentInPlaylist?'Added':'Add'
+                          }
+                        </span>
+                      </div>
+                      {
+                        isAddVideoToPlaylistModalOpened && (
+                          <AddVideoToPlaylistModal 
+                            videoId={videoId}
+                            setIsModalOpened = {setIsAddVideoToPlaylistModalOpened}
+                          />
+                        )
+                      }
+                    </div>
+
                   </div>
                 </div>
 

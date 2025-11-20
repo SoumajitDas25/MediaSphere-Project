@@ -1,7 +1,7 @@
-//scopedEvents: events which are to be emitted to a public room
-const scopedEvents = [ //only those events for which data should be updated in real-time
+//publicEvents: events which are to be emitted to a public room
+const publicEvents = [ //only those events for which data should be updated in real-time
     {
-        namePrefix:"user",
+        domain:"user",
         names: [
             'updateChannelName',
             'updateEmail',
@@ -18,13 +18,26 @@ const scopedEvents = [ //only those events for which data should be updated in r
         ]
     },
     {
-        namePrefix:"video",
+        domain:"video",
         names: [ 
             'updateViewCount',
             'updateCommentCount',
             'updateReplyCount',
-            'updateIsVideoLiked',
             'updateVideoLikeCount',
+            'updateCommentLikeCount',
+            'updateReplyLikeCount',
+            'reloadCommentList',
+            'reloadReplyList'
+        ]
+    },
+    {
+        domain:"tweet",
+        names: [ 
+            'updateTweet',
+            'deleteTweet',
+            'updateCommentCount',
+            'updateReplyCount',
+            'updateTweetLikeCount',
             'updateCommentLikeCount',
             'updateReplyLikeCount',
             'reloadCommentList',
@@ -33,9 +46,27 @@ const scopedEvents = [ //only those events for which data should be updated in r
     }
 ];
 
-//privateUserEvents: events which are to be emitted to a user private room
-const privateUserEvents = [ //only those events which needs syncing across all sockets of the user
-    'updateIsSubscribed'
+//privateEvents: events which are to be emitted to a user private room
+const privateEvents = [ //only those events which needs syncing across all sockets of the user
+    {
+        domain:"user",
+        names: [
+            'updateIsSubscribed'
+        ]
+    },
+    {
+        domain:"video",
+        names: [ 
+            'updateIsVideoLiked',
+            'updateIsVideoPresentInPlaylist'
+        ]
+    },
+    {
+        domain:"tweet",
+        names: [ 
+            'updateIsTweetLiked'
+        ]
+    }
 ]
 
-export { scopedEvents,privateUserEvents };
+export { publicEvents,privateEvents };

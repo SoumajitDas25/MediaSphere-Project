@@ -2,7 +2,7 @@
 import { io } from 'socket.io-client';
 import conf from '../conf/conf';
 import eventBus from '../events/eventBus';
-import { getEmitEventNames,getListenEventNames } from '../events/eventNames';
+import { getEmitEventNames,getPublicListenEventNames,getPrivateListenEventNames } from '../events/eventNames';
 import { setIsSocketConnected } from '../slices/authSlice';
 import { store } from '../store/store';
 
@@ -41,7 +41,9 @@ const initSocketManager = (authToken=null) => {
     });
 
     //listen socket events from backend and broadcast domain/bus events via eventBus
-    const listenEventNames = getListenEventNames();
+    const publicEventNames = getPublicListenEventNames();
+    const privateEventNames = getPrivateListenEventNames();
+    const listenEventNames = [...publicEventNames,...privateEventNames];
     for (const name of listenEventNames) 
     {
         if (!socket.hasListeners(name)) 
@@ -71,10 +73,18 @@ const initSocketManager = (authToken=null) => {
 }
 
 const disconnectSocket = () => {
-    if(socket && socket.connected)
+
+     if (socket) 
     {
-        socket.disconnect();
-        socket=null;
+        // ✅ Remove all socket listeners to avoid memory leaks or duplicate handlers
+        socket.removeAllListeners();
+        // ✅ Disconnect only if connected
+        if (socket.connected) 
+        {
+            socket.disconnect();
+        }
+        // ✅ Nullify socket instance
+        socket = null;
     }
 }
 

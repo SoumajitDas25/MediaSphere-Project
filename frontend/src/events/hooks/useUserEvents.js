@@ -6,7 +6,7 @@ const useUserEvents = ({
   data={
     userId:null,
   },
-  listeners={
+  publicListeners={
     updateChannelName:null,
     updateEmail:null,
     updateAvatar:null,
@@ -16,6 +16,9 @@ const useUserEvents = ({
     updateVideoCount:null,
     updateTweetCount:null,
     updatePlaylistCount:null,
+  },
+  privateListeners={
+    updateIsSubscribed:null,
     reloadVideoList:null,
     reloadTweetList:null,
     reloadPlaylistList:null
@@ -24,7 +27,8 @@ const useUserEvents = ({
   
   const eventNamePrefix = "user";
   const {userId} =data;
-  const {updateChannelName,updateEmail,updateAvatar,updateCoverImage,updateSubscriberCount,updateSubscriptionCount,updateVideoCount,updateTweetCount,updatePlaylistCount,reloadVideoList,reloadTweetList,reloadPlaylistList} = listeners;
+  const {updateChannelName,updateEmail,updateAvatar,updateCoverImage,updateSubscriberCount,updateSubscriptionCount,updateVideoCount,updateTweetCount,updatePlaylistCount,reloadVideoList,reloadTweetList,reloadPlaylistList} = publicListeners;
+  const {updateIsSubscribed} = privateListeners;
   const isSocketConnected = useSelector(state=>state.auth.isSocketConnected);
 
   useEffect(() => {
@@ -38,7 +42,7 @@ const useUserEvents = ({
       console.log(`join ${eventNamePrefix} room`);
     }
 
-    //add event listeners
+    //add public event listeners
     if (updateChannelName && !eventBus.hasListeners(`${eventNamePrefix}:updateChannelName`,updateChannelName)) 
       eventBus.on(`${eventNamePrefix}:updateChannelName`, updateChannelName);
 
@@ -75,6 +79,19 @@ const useUserEvents = ({
     if (reloadPlaylistList && !eventBus.hasListeners(`${eventNamePrefix}:reloadPlaylistList`,reloadPlaylistList)) 
       eventBus.on(`${eventNamePrefix}:reloadPlaylistList`, reloadPlaylistList);
 
+    //add private event listeners
+    if (updateIsSubscribed && !eventBus.hasListeners(`private:${eventNamePrefix}:updateIsSubscribed`,updateIsSubscribed)) 
+      eventBus.on(`private:${eventNamePrefix}:updateIsSubscribed`, updateIsSubscribed);
+
+    // if (reloadVideoList && !eventBus.hasListeners(`private:${eventNamePrefix}:reloadVideoList`,reloadVideoList)) 
+    //   eventBus.on(`private:${eventNamePrefix}:reloadVideoList`, reloadVideoList);
+
+    // if (reloadTweetList && !eventBus.hasListeners(`private:${eventNamePrefix}:reloadTweetList`,reloadTweetList)) 
+    //   eventBus.on(`private:${eventNamePrefix}:reloadTweetList`, reloadTweetList);
+
+    // if (reloadPlaylistList && !eventBus.hasListeners(`private:${eventNamePrefix}:reloadPlaylistList`,reloadPlaylistList)) 
+    //   eventBus.on(`private:${eventNamePrefix}:reloadPlaylistList`, reloadPlaylistList);
+
     return () => {
 
       //leave event room only if socket is connected & Id is available
@@ -84,7 +101,7 @@ const useUserEvents = ({
         console.log(`leave ${eventNamePrefix} room`);
       }
 
-      //remove event listeners
+      //remove public event listeners
       if (updateChannelName && eventBus.hasListeners(`${eventNamePrefix}:updateChannelName`,updateChannelName)) 
         eventBus.off(`${eventNamePrefix}:updateChannelName`,updateChannelName);
 
@@ -120,6 +137,19 @@ const useUserEvents = ({
 
       if (reloadPlaylistList && eventBus.hasListeners(`${eventNamePrefix}:reloadPlaylistList`,reloadPlaylistList)) 
         eventBus.off(`${eventNamePrefix}:reloadPlaylistList`,reloadPlaylistList);
+
+      //remove private event listeners
+      if (updateIsSubscribed && eventBus.hasListeners(`private:${eventNamePrefix}:updateIsSubscribed`,updateIsSubscribed)) 
+        eventBus.off(`private:${eventNamePrefix}:updateIsSubscribed`,updateIsSubscribed);
+
+      // if (reloadVideoList && eventBus.hasListeners(`private:${eventNamePrefix}:reloadVideoList`,reloadVideoList)) 
+      //   eventBus.off(`private:${eventNamePrefix}:reloadVideoList`,reloadVideoList);
+
+      // if (reloadTweetList && eventBus.hasListeners(`private:${eventNamePrefix}:reloadTweetList`,reloadTweetList)) 
+      //   eventBus.off(`private:${eventNamePrefix}:reloadTweetList`,reloadTweetList);
+
+      // if (reloadPlaylistList && eventBus.hasListeners(`private:${eventNamePrefix}:reloadPlaylistList`,reloadPlaylistList)) 
+      //   eventBus.off(`private:${eventNamePrefix}:reloadPlaylistList`,reloadPlaylistList);
     };
   }, [isSocketConnected,userId]);
 };

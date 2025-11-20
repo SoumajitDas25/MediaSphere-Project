@@ -3,7 +3,7 @@ import { LikeIcon,LikedIcon,EditIcon,DeleteIcon } from "../../assets/icons";
 import { useNavigate } from 'react-router-dom';
 import {replyAPI,likeAPI} from "../../api"
 import { useRef, useState } from "react";
-import {InputModal,ConfirmModel, Like} from "../";
+import {InputModal,ConfirmModal, Like} from "../";
 
 const ReplyCard = ({
     data,
@@ -27,6 +27,7 @@ const ReplyCard = ({
         likesCount,
         // repliesCount,
         isLiked,
+        repliedTo,
         createdAt,
         updatedAt
     } = data;
@@ -159,7 +160,7 @@ const ReplyCard = ({
             }
             {
                 enableDelete && (
-                    <ConfirmModel 
+                    <ConfirmModal 
                     setIsModalOpened={setEnableDelete}
                     heading="Delete Reply" 
                     message="Are you sure to delete this reply ?" 
@@ -180,7 +181,7 @@ const ReplyCard = ({
                     owner && owner.avatar?
                     <img 
                     src={owner.avatar} 
-                    alt="Video Thumbnail" 
+                    alt="" 
                     className="rounded-[50%] max-h-[12vw] sm:max-h-[3rem]"
                     />
                     :
@@ -190,7 +191,7 @@ const ReplyCard = ({
                 }                 
             </div>
 
-            {/* comment info */}
+            {/* reply info */}
             <div className="w-full flex flex-col justify-center gap-4">
                 <h4 className="flex items-center gap-x-2 text-[3.5vw] sm:text-[0.75rem] md:text-[1rem]">
                     {/* Channel Name */}
@@ -211,8 +212,11 @@ const ReplyCard = ({
                     </span>
                 </h4>
                 {/* content */}
-                <p>
-                {content}
+                <p className="flex gap-1">
+                    <span className="text-color-dark_yellow font-semibold">
+                        @{repliedTo && repliedTo.username?repliedTo.username:''}
+                    </span>
+                    <span>{content}</span>
                 </p>
                 <div className="flex items-center justify-between text-[1rem]">
                     {/* likeOption */}

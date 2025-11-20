@@ -1,7 +1,7 @@
 import React from 'react'
-import {Button, Modal} from '../'
+import {Button, Modal} from '..'
 
-const ConfirmModel = ({
+const ConfirmModal = ({
     setIsModalOpened=false,
     heading='Confirm',
     message='Sample Message',
@@ -43,4 +43,4 @@ const ConfirmModel = ({
     )
 }
 
-export default ConfirmModel
+export default ConfirmModal

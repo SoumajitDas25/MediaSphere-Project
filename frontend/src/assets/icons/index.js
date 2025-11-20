@@ -31,6 +31,8 @@ import { MdEdit } from "react-icons/md";
 import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineSpaceDashboard } from "react-icons/md";
 import { BsChatDots } from "react-icons/bs";
+import { MdOutlinePlaylistAdd } from "react-icons/md";
+import { MdOutlinePlaylistAddCheck } from "react-icons/md";
 import NoUserIcon from "./user.png";
 
 export {
@@ -67,5 +69,7 @@ export {
     MdEdit as EditIcon,
     FaRegTrashAlt as DeleteIcon,
     MdOutlineSpaceDashboard as DashboardIcon,
+    MdOutlinePlaylistAdd as PlaylistAddIcon,
+    MdOutlinePlaylistAddCheck as PlaylistAddedIcon,
     NoUserIcon
 }

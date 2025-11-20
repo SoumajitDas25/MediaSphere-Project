@@ -36,7 +36,7 @@ const LoginForm = () => {
   return (
     <>
         {/* {loading &&<Loader/>} */}
-        <div className="flex w-[95%] sm:w-[30rem] flex-col justify-center px-6 py-12 lg:px-8 bg-light-bg_light dark:bg-dark-btn1_color rounded-lg">
+        <div className="flex w-[95%] sm:w-[30rem] flex-col justify-center px-6 py-12 lg:px-8 bg-light-bg_light dark:bg-dark-btn1_color rounded-lg shadow-custom shadow-light-btn1_color">
             <div className="sm:mx-auto sm:w-full sm:max-w-sm">
             <img
                 alt="Your Company"
@@ -59,9 +59,7 @@ const LoginForm = () => {
                     label="Username"
                     type="text"
                     placeholder="Your Username"
-                    className="border-0 shadow-sm ring-1 ring-inset ring-gray-400 dark:ring-light-font_color_light placeholder:text-light-font_color_light focus:ring-2 focus:ring-inset focus:ring-color-yellow sm:text-sm sm:leading-6 rounded-lg"
-                    bgColor="bg-light-bg_light dark:bg-dark-btn1_color"
-                    textColor="text-light-font_color_dark dark:text-dark-font_color_light"
+                    bgColor="bg-transparent"
                     {...register("username", {
                     //validations- atleast 4 lowercase letters, atleast 1 digit & upto 3 digit, can include upto 3 underscores(not consecutively) in between letters
                     required: "Username is required",
@@ -92,9 +90,7 @@ const LoginForm = () => {
                     label="Password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Your Password"
-                    className="border-0 shadow-sm ring-1 ring-inset ring-gray-400 dark:ring-light-font_color_light placeholder:text-light-font_color_light focus:ring-2 focus:ring-inset focus:ring-color-yellow sm:text-sm sm:leading-6 rounded-lg"
-                    bgColor="bg-light-bg_light dark:bg-dark-btn1_color"
-                    textColor="text-light-font_color_dark dark:text-dark-font_color_light"
+                    bgColor="bg-transparent"
                     {...register("password", {
                     //validations- exactly one uppercase letter and rest all lowercase letters, at least 1 digit & upto 4 digits, at least one special character & upto 3 special characters(@,&,$,#,_,!), spaces not allowed.
                     required: "Password is required",

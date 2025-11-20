@@ -41,7 +41,58 @@ const createTweet = async (content)=>{
     }
 }
 
+const getTweetById = async (tweetId)=>{
+    try
+    {
+        const response =  await api(
+            `/${tweetId}`,
+            {},
+            'GET'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+const updateTweet = async (tweetId,content)=>{
+    try
+    {
+        const response =  await api(
+            `/${tweetId}`,
+            {
+                content
+            },
+            'PATCH'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+const deleteTweet = async (tweetId)=>{
+    try
+    {
+        const response =  await api(
+            `/${tweetId}`,
+            {},
+            'DELETE'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 export default {
     getUserTweets,
-    createTweet
+    createTweet,
+    getTweetById,
+    updateTweet,
+    deleteTweet
 }

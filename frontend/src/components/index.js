@@ -14,6 +14,7 @@ import ListContainer from "./ListContainer";
 import VideoCard from "./VideoCard/VideoCard";
 import TweetCard from "./TweetCard/TweetCard";
 import PlaylistCard from "./PlaylistCard/PlaylistCard";
+import PlaylistCard2 from "./PlaylistCard/PlaylistCard2";
 import ChannelCard from "./ChannelCard/ChannelCard";
 import CommentCard from "./CommentCard/CommentCard";
 import ReplyCard from "./ReplyCard/ReplyCard";
@@ -24,13 +25,14 @@ import PublishButton from "./PublishButton/PublishButton";
 import BgFreezer from "./BgFreezer/BgFreezer";
 import Modal from "./Modal/Modal";
 import InputModal from "./Modal/InputModal";
-import ConfirmModel from "./Modal/ConfirmModel";
+import ConfirmModal from "./Modal/ConfirmModal";
 import Uploader from "./Uploader/Uploader";
 import Message from "./Message/Message";
 import ImageCropper from "./ImageCropper/ImageCropper";
 import Heading from "./Heading";
 import Like from "./Like";
 import CommentPanel from "./CommentPanel";
+import AddVideoToPlaylistModal from "./AddVideoToPlaylistModal";
 
 export {
     Header,
@@ -50,6 +52,7 @@ export {
     VideoCard,
     TweetCard,
     PlaylistCard,
+    PlaylistCard2,
     ChannelCard,
     CommentCard,
     ReplyCard,
@@ -57,7 +60,7 @@ export {
     BgFreezer,
     Modal,
     InputModal,
-    ConfirmModel,
+    ConfirmModal,
     UploadVideoModal,
     CreateTweetModal,
     Uploader,
@@ -65,5 +68,6 @@ export {
     ImageCropper,
     Heading,
     Like,
-    CommentPanel
+    CommentPanel,
+    AddVideoToPlaylistModal
 }

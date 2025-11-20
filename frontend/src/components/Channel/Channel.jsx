@@ -19,7 +19,7 @@ const Channel = () => {
     const [coverImage,setCoverImage] = useState(null);
     const [subscriberCount,setSubscriberCount] = useState(null);
     const [subscriptionCount,setSubscriptionCount] = useState(null);
-    // const [isSubscribed,] = useState(null);
+    const [isSubscribed,setIsSubscribed] = useState(null);
     const [videosCount,setVideosCount] = useState(null);
     const [activeButtonIndex,setActiveButtonIndex] = useState(null);
     const [activeContent,setActiveContent] = useState(null);
@@ -122,19 +122,12 @@ const Channel = () => {
         try
         {
             setIsSubscribeButtonLoading(true);
-            //first toggle isSubscribed state(before api call)
-            // setChannelProfile(state=>({...state,isSubscribed:!state.isSubscribed}));
             const response = await toggleSubscription(channelProfile._id);
-            channelProfile.isSubscribed=!channelProfile.isSubscribed;
-            console.log(response);
-            // if(!(response.data.statusCode >= 200 && response.data.statusCode <300))
-            //     //re-toggle isSubscribed state if any wrong statusCode arrives
-            //     setChannelProfile(state=>({...state,isSubscribed:!state.isSubscribed})); 
+            // setIsSubscribed(response.data.data.isSubscribed);
+            // console.log(response); 
         }
         catch(error)
         {
-            //re-toggle isSubscribed state if any error occurs
-            // setChannelProfile(state=>({...state,isSubscribed:!state.isSubscribed}));
             console.log(error);
         }
         finally
@@ -212,6 +205,7 @@ const Channel = () => {
                     setSubscriberCount(response.data.data.subscriberCount);
                     setSubscriptionCount(response.data.data.subscriptionCount);
                     setVideosCount(response.data.data.videosCount);
+                    setIsSubscribed(response.data.data.isSubscribed);
                     setActiveButtonIndex(0);
                     setActiveContent(ribbon[0].content);
                 }
@@ -233,7 +227,7 @@ const Channel = () => {
         data:{
             userId:(channelProfile && channelProfile._id)?channelProfile._id:null
         },
-        listeners:{
+        publicListeners:{
             updateAvatar:(payload)=>{
                 setAvatar(payload);
             },
@@ -256,12 +250,23 @@ const Channel = () => {
                 console.log("reloadVideoList: ",payload);
             },
             reloadTweetList:(payload)=>{
-                listRef.current.reload(payload);
+                console.log(activeContent.type);
+                // if(activeContent.type==='Tweet')
+                    listRef.current.reload(payload);
                 console.log("reloadTweetList: ",payload);
             },
             reloadPlaylistList:(payload)=>{
-                listRef.current.reload(payload);
+                listRef.current.reload(payload);      
                 console.log("reloadPlaylistList: ",payload);
+            }
+        },
+        privateListeners:{
+            updateIsSubscribed:(payload)=>{
+                if(userId===payload.id)
+                {
+                    setIsSubscribed(payload.data); 
+                    // console.log(payload.data);      
+                }
             }
         }
     });
@@ -377,13 +382,13 @@ const Channel = () => {
                             {channelProfile._id !== userId  && (
                                 <Button 
                                 fontSize='text-[0.7rem] sm:text-[0.8rem] md:text-[1rem]' 
-                                bgcolor={`${channelProfile.isSubscribed? 'bg-transparent hover:bg-dark-font_color_dark dark:hover:bg-light-bg_dark':'bg-color-yellow'}`} 
-                                textcolor={`${channelProfile.isSubscribed? 'text-light-font_color_dark dark:text-dark-font_color_dark hover:dark:text-light-font_color_dark':'text-light-font_color_dark'}`}
-                                className={`${channelProfile.isSubscribed && 'border border-light-font_color_dark dark:border-dark-font_color_dark'}`} 
+                                bgcolor={`${isSubscribed? 'bg-transparent hover:bg-dark-font_color_dark dark:hover:bg-light-bg_dark':'bg-color-yellow'}`} 
+                                textcolor={`${isSubscribed? 'text-light-font_color_dark dark:text-dark-font_color_dark hover:dark:text-light-font_color_dark':'text-light-font_color_dark'}`}
+                                className={`${isSubscribed && 'border border-light-font_color_dark dark:border-dark-font_color_dark'}`} 
                                 onClick={toggleSubscribe} 
                                 isLoading={isSubscribeButtonloading}
                                 >
-                                    {channelProfile.isSubscribed?'Unsubscribe':'Subscribe'}
+                                    {isSubscribed?'Unsubscribe':'Subscribe'}
                                 </Button>
                             )}
                         </div>

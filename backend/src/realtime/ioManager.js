@@ -16,7 +16,8 @@ const initIOManager = () => {
         });
 
         //join the socket to its user private room
-        // socket.join()
+        socket.join(`private:${String(socket.userId)}`);
+        console.log(`Socket ${socket.id} joined private:${String(socket.userId)}`);
     
         //listen socket public room join events from frontend & join the socket to the room
         initSocketListeners(socket);

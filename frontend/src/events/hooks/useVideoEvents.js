@@ -6,20 +6,26 @@ const useVideoEvents = ({
   data={
     videoId:null,
   },
-  listeners={
+  publicListeners={
     updateViewCount:null,
     updateVideoLikeCount:null,
-    updateIsVideoLiked:null,
     updateCommentLikeCount:null,
     updateReplyLikeCount:null,
     updateCommentCount:null,
-    updateReplyCount:null
+    updateReplyCount:null,
+    reloadCommentList:null,
+    reloadReplyList:null
+  },
+  privateListeners={
+    updateIsVideoLiked:null,
+    updateIsVideoPresentInPlaylist:null
   }
 }) => {
   
   const eventNamePrefix = "video";
   const {videoId} =data;
-  const {updateViewCount,updateVideoLikeCount,updateIsVideoLiked,updateCommentLikeCount,updateReplyLikeCount,updateCommentCount,updateReplyCount} = listeners;
+  const {updateViewCount,updateVideoLikeCount,updateCommentLikeCount,updateReplyLikeCount,updateCommentCount,updateReplyCount,reloadCommentList,reloadReplyList} = publicListeners;
+  const {updateIsVideoLiked,updateIsVideoPresentInPlaylist} = privateListeners;
   const isSocketConnected = useSelector(state=>state.auth.isSocketConnected);
 
   useEffect(() => {
@@ -33,15 +39,12 @@ const useVideoEvents = ({
        console.log(`join ${eventNamePrefix} room`);
     }
 
-    //add event listeners
+    //add public event listeners
     if (updateViewCount && !eventBus.hasListeners(`${eventNamePrefix}:updateViewCount`,updateViewCount)) 
       eventBus.on(`${eventNamePrefix}:updateViewCount`, updateViewCount);
 
     if (updateVideoLikeCount && !eventBus.hasListeners(`${eventNamePrefix}:updateVideoLikeCount`,updateVideoLikeCount)) 
       eventBus.on(`${eventNamePrefix}:updateVideoLikeCount`, updateVideoLikeCount);
-
-    if (updateIsVideoLiked && !eventBus.hasListeners(`${eventNamePrefix}:updateIsVideoLiked`,updateIsVideoLiked)) 
-      eventBus.on(`${eventNamePrefix}:updateIsVideoLiked`, updateIsVideoLiked);
 
     if (updateCommentLikeCount && !eventBus.hasListeners(`${eventNamePrefix}:updateCommentLikeCount`,updateCommentLikeCount)) 
       eventBus.on(`${eventNamePrefix}:updateCommentLikeCount`,updateCommentLikeCount);
@@ -55,6 +58,14 @@ const useVideoEvents = ({
     if (updateReplyCount && !eventBus.hasListeners(`${eventNamePrefix}:updateReplyCount`,updateReplyCount)) 
       eventBus.on(`${eventNamePrefix}:updateReplyCount`, updateReplyCount);
 
+    //add private event listeners
+    if (updateIsVideoLiked && !eventBus.hasListeners(`private:${eventNamePrefix}:updateIsVideoLiked`,updateIsVideoLiked)) 
+      eventBus.on(`private:${eventNamePrefix}:updateIsVideoLiked`, updateIsVideoLiked);
+
+    if (updateIsVideoPresentInPlaylist && !eventBus.hasListeners(`private:${eventNamePrefix}:updateIsVideoPresentInPlaylist`,updateIsVideoPresentInPlaylist)) 
+      eventBus.on(`private:${eventNamePrefix}:updateIsVideoPresentInPlaylist`, updateIsVideoPresentInPlaylist);
+
+
     return () => {
 
       //leave event room only if socket is connected & Id is available
@@ -64,15 +75,12 @@ const useVideoEvents = ({
         console.log(`leave ${eventNamePrefix} room`);
       }
 
-      //remove event listeners
+      //remove public event listeners
       if (updateViewCount && eventBus.hasListeners(`${eventNamePrefix}:updateViewCount`,updateViewCount)) 
         eventBus.off(`${eventNamePrefix}:updateViewCount`,updateViewCount);
 
       if (updateVideoLikeCount && eventBus.hasListeners(`${eventNamePrefix}:updateVideoLikeCount`,updateVideoLikeCount)) 
         eventBus.off(`${eventNamePrefix}:updateVideoLikeCount`,updateVideoLikeCount);
-
-      if (updateIsVideoLiked && eventBus.hasListeners(`${eventNamePrefix}:updateIsVideoLiked`,updateIsVideoLiked)) 
-        eventBus.off(`${eventNamePrefix}:updateIsVideoLiked`,updateIsVideoLiked);
 
       if (updateCommentLikeCount && eventBus.hasListeners(`${eventNamePrefix}:updateCommentLikeCount`,updateCommentLikeCount)) 
         eventBus.off(`${eventNamePrefix}:updateCommentLikeCount`,updateCommentLikeCount);
@@ -85,6 +93,13 @@ const useVideoEvents = ({
         
       if (updateReplyCount && eventBus.hasListeners(`${eventNamePrefix}:updateReplyCount`,updateReplyCount)) 
         eventBus.off(`${eventNamePrefix}:updateReplyCount`,updateReplyCount);
+
+      //remove private event listeners
+      if (updateIsVideoLiked && eventBus.hasListeners(`private:${eventNamePrefix}:updateIsVideoLiked`,updateIsVideoLiked)) 
+        eventBus.off(`private:${eventNamePrefix}:updateIsVideoLiked`,updateIsVideoLiked);
+
+      if (updateIsVideoPresentInPlaylist && eventBus.hasListeners(`private:${eventNamePrefix}:updateIsVideoPresentInPlaylist`,updateIsVideoPresentInPlaylist)) 
+        eventBus.off(`private:${eventNamePrefix}:updateIsVideoPresentInPlaylist`,updateIsVideoPresentInPlaylist);
     };
   }, [isSocketConnected,videoId]);
 };

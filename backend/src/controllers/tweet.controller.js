@@ -7,6 +7,7 @@ import { Like } from "../models/like.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
+import eventBus from "../utils/eventBus.js"
 
 const createTweet = asyncHandler(async (req, res) => {
 
@@ -19,7 +20,7 @@ const createTweet = asyncHandler(async (req, res) => {
         throw new ApiError(400,"Tweet content is required");
     }
 
-    //create entry in db
+    // //create entry in db
     const tweet = await Tweet.create({
         owner:req.user._id,
         content:content
@@ -29,10 +30,19 @@ const createTweet = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while creating tweet document");
     }
 
+    //send updateTweetCount event
+    const updatedTweetCount = await Tweet.countDocuments({
+        owner: req.user._id
+    });
+    eventBus.emit("user:updateTweetCount",{id:req.user._id,data:updatedTweetCount});
+
+    //send reloadTweetList event
+    eventBus.emit("user:reloadTweetList",{id:req.user._id,data:'insertOne'});
+
     //send the tweet document as response
     res.status(201)
     .json(
-        new ApiResponse(201,tweet,"Tweet Published Sucessfully")
+        new ApiResponse(201,{},"Tweet Published Sucessfully")
     )
 
 })
@@ -197,6 +207,132 @@ const getUserTweets = asyncHandler(async (req, res) => {
     );
 })
 
+const getTweetById = asyncHandler(async (req,res)=>{
+
+    //fetch tweetId from req params
+    const { tweetId } = req.params;
+    if(!isValidObjectId(tweetId))
+    {
+        throw new ApiError(400,"Invalid Tweet Id");
+    }
+
+    //check if the tweet exists or not
+    const tweet = await Tweet.findById(tweetId);
+    if(!tweet)
+    {
+        throw new ApiError(400,"Incorrect Tweet Id - Tweet does not exist");
+    }
+
+    const finalTweet = await Tweet.aggregate([
+        {
+            $match: { //find the tweet doc by id
+                _id: new mongoose.Types.ObjectId(String(tweetId))
+            }
+        },
+        {
+            $lookup: { //get the owner obj by id
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $lookup: {  //get those connection docs where channel = ownerid i.e., (list of subscribers)
+                        from: "connections",
+                        localField: "_id",
+                        foreignField: "channel",
+                        as:"subscribers"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            subscribersCount: { //calculate the size of subscribers field
+                            $size: "$subscribers"
+                            },
+                            isSubscribed: { //check whether user/viewer has subscribed to the owner's channel
+                                $cond: {
+                                    if: {$in: [req.user._id,"$subscribers.subscriber"]},
+                                    then: true,
+                                    else: false
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $project: { //include only these fields
+                            _id:1,
+                            username: 1,
+                            channelName: 1,
+                            avatar: 1,
+                            subscribersCount: 1,
+                            isSubscribed: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $lookup: { //get the like doc of the tweet for the user if it exists
+                from: "likes",
+                let: { tweetId: "$_id" }, // Reference the current tweetId
+                pipeline: [
+                    {
+                        $match:{
+                            $expr: {
+                                $and: [
+                                    { 
+                                        $eq: ["$tweet", "$$tweetId"] 
+                                    },
+                                    { 
+                                        $eq: ["$likedBy", new mongoose.Types.ObjectId(String(req.user._id))] 
+                                    },
+                                    {
+                                        $eq:["$targetType","tweet"]
+                                    } 
+                                ]
+                            }
+                        }
+                    }
+                ],
+                as: "isLikedData",
+            }
+        },
+        {
+            $addFields: { 
+                owner: { //store the first element(obj) of owner[] field
+                    $first: "$owner"
+                },
+                isLiked: { //if isLikedData[] contains data, then add isliked as true else false
+                    $cond: { 
+                        if: { 
+                            $gt: [
+                                { $size: "$isLikedData" },0] 
+                        }, 
+                        then: true, 
+                        else: false 
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                isLikedData: 0,
+                firstPlaylistContainingVideo: 0
+            }
+        }
+    ]);
+    if(!(finalTweet && finalTweet.length!==0))
+    {
+        throw new ApiError(500,"Something went wrong while fetching tweet document");
+    }
+
+    //send the video doc as response
+    res.status(200)
+    .json(
+        new ApiResponse(200,finalTweet[0],"Tweet Fetched Successfully")
+    );
+});
+
 const updateTweet = asyncHandler(async (req, res) => {
     
     //get tweetId from req params
@@ -230,6 +366,12 @@ const updateTweet = asyncHandler(async (req, res) => {
     {
         throw new ApiError(500,"Something went wrong while updating Tweet document");
     }
+
+    //send updateTweet event
+    eventBus.emit("tweet:updateTweet",{id:tweetId,data:updatedTweet.content});
+
+    //send reloadTweetList event
+    eventBus.emit("user:reloadTweetList",{id:req.user._id,data:'current'});
 
     //send the updated tweet doc as response
     res.status(200)
@@ -287,6 +429,18 @@ const deleteTweet = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while deleting comment reply documents")
     }
 
+    //send deleteTweet event
+    eventBus.emit("tweet:deleteTweet",{id:tweetId,data:true});
+
+    //send updateTweetCount event
+    const updatedTweetCount = await Tweet.countDocuments({
+        owner: req.user._id
+    });
+    eventBus.emit("user:updateTweetCount",{id:req.user._id,data:updatedTweetCount});
+
+    //send reloadTweetList event
+    eventBus.emit("user:reloadTweetList",{id:req.user._id,data:'deleteOne'});
+
     res.status(200)
     .json(
         new ApiResponse(200,{},"Tweet Deleted Successfully")
@@ -296,6 +450,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
 export {
     createTweet,
     getUserTweets,
+    getTweetById,
     updateTweet,
     deleteTweet
 }

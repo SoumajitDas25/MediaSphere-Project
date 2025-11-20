@@ -387,13 +387,17 @@ const deleteReply = asyncHandler(async (req,res) =>{
         throw new ApiError(500,"Something went wrong while deleting Reply document");
     }
 
-    //find the comment doc for the reply
-    const comment = await Comment.findById(deletedReply.comment);
+    // //find the comment doc for the reply
+    // const comment = await Comment.findById(deletedReply.comment);
 
-    //remove the replyId from replies[] in the comment doc
-    comment.replies.splice(comment.replies.indexOf(replyId),1);
+    // //remove the replyId from replies[] in the comment doc
+    // comment.replies.splice(comment.replies.indexOf(replyId),1);
 
-    const updatedComment = await comment.save({validateBeforeSave:false});
+    // const updatedComment = await comment.save({validateBeforeSave:false});
+    const updatedComment = await Comment.updateOne(
+        { _id: deletedReply.comment },
+        { $pull: { replies: replyId } }
+    );
     if(!updatedComment)
     {
         throw new ApiError(500,"Something went wrong while updating Comment document");

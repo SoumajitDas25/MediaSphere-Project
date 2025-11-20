@@ -2,7 +2,7 @@ import { LikeIcon,ReplyIcon, LikedIcon, EditIcon,DeleteIcon } from "../../assets
 import { useNavigate } from 'react-router-dom';
 import {commentAPI,likeAPI} from "../../api"
 import { useSelector } from "react-redux";
-import {InputModal,ConfirmModel, Like} from "../";
+import {InputModal,ConfirmModal, Like} from "../";
 import { useRef, useState } from "react";
 
 const CommentCard = ({
@@ -144,7 +144,7 @@ const CommentCard = ({
     return (
         <div 
         className="bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light rounded-lg overflow-hidden w-full flex gap-3 p-2 border-b border-gray-700 py-4 last:border-b-transparent"
-        onClick={()=>onClick?onClick(data):null}
+        onClick={()=>onClick?onClick({...data,isLiked:isCommentLiked,likesCount:commentLikesCount}):null}
         >
             {
                 enableEdit && (
@@ -162,7 +162,7 @@ const CommentCard = ({
             }
             {
                 enableDelete && (
-                    <ConfirmModel 
+                    <ConfirmModal 
                     setIsModalOpened={setEnableDelete}
                     heading="Delete Comment" 
                     message="Are you sure to delete this comment ?" 

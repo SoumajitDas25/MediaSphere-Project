@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import {Modal,TextArea,Button} from "../"
 
 const InputModal = forwardRef(({
@@ -14,6 +14,7 @@ const InputModal = forwardRef(({
     className=''
 },ref) => {
 
+    const [inputText,setInputText]=useState(defaultValue);
     const inputRef = useRef(null);
 
     useImperativeHandle(ref,()=>({ //expose these to parent via ref
@@ -21,7 +22,7 @@ const InputModal = forwardRef(({
         reset: ()=>{
             inputRef.current.reset();
         }
-    }))
+    }));
 
     return (
         <Modal 
@@ -33,12 +34,14 @@ const InputModal = forwardRef(({
             <div className="mx-auto flex w-full flex-col gap-y-4 p-4 max-h-[80vh] overflow-auto scrollbar-hide">
                 <div className="w-full">
                     <TextArea
-                    className="h-40 w-full resize-none border bg-transparent px-2 py-1 outline-none border-light-font_color_light dark:border-light-btn1_color rounded-lg"
+                    className="h-40 px-2 py-1"
+                    bgColor="bg-transparent"
                     rows={rows}
                     limit={limit}
                     placeholder={placeholder} 
                     ref={inputRef} 
-                    defaultValue={defaultValue}
+                    value={inputText}
+                    setValue={setInputText}
                     />
                 </div>
                 <div className="flex justify-center gap-2">
@@ -54,6 +57,7 @@ const InputModal = forwardRef(({
                     <Button 
                     onClick={submitHandler}
                     isLoading={isSubmitButtonLoading}
+                    isEnabled={inputText!=='' && inputText!==defaultValue}
                     >
                         {submitButtonText}
                     </Button>

@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { LikeIcon,CommentIcon, LikedIcon } from "../../assets/icons";
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from "react-redux";
+import { Like } from "..";
+import {likeAPI} from "../../api";
 
 const TweetCard = ({
     data,
@@ -18,6 +21,9 @@ const TweetCard = ({
         createdAt,
         updatedAt
     } = data;
+    const [isTweetLiked,setIsTweetLiked] = useState(isLiked);
+    const [tweetLikesCount,setTweetLikesCount] = useState(likesCount);
+    const {toggleTweetLike} = likeAPI;
 
     // Function to calculate time difference
     function timeSince(date) 
@@ -54,10 +60,40 @@ const TweetCard = ({
         return `${years} ${years==1?'year':'years'} ago`;
     }
 
+    const toggleLike = async () =>{
+
+        // backup for reverting in catch
+        const prevIsLiked = isTweetLiked; 
+        const prevLikesCount = tweetLikesCount;
+
+        try
+        {
+            //toggle the state before api call
+            setTweetLikesCount(state=>( 
+                prevIsLiked?state-1:state+1
+            ));
+            setIsTweetLiked(state=>!state);
+            const response = await toggleTweetLike(_id);
+            console.log(response.data.data);  
+
+            //sync with backend response to maintain consistency
+            setIsTweetLiked(response.data.data.isLiked);
+            setTweetLikesCount(response.data.data.likesCount);
+            console.log(response.data.data.likesCount,response.data.data.isLiked);
+        }
+        catch(error)
+        {   
+            //if any error occurs, then revert the state
+            setTweetLikesCount(prevLikesCount);
+            setIsTweetLiked(prevIsLiked);  
+            console.log(error);     
+        }
+    }
+
     return (
         <div 
         className="bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light rounded-lg overflow-hidden w-full flex gap-3 p-2 border-b border-gray-700 py-4 last:border-b-transparent"
-        onClick={()=>navigate('/tweet')}
+        onClick={()=>navigate(`/tweet/${_id}`)}
         >
             
             {/* avatar */}
@@ -105,24 +141,31 @@ const TweetCard = ({
                 <p>
                 {content}
                 </p>
-                <div className="flex gap-4 text-[1rem]">
-                    {/* likesCount */}
-                    <button
-                        className="inline-flex items-center gap-x-1 outline-none"
+                <div className="grid grid-cols-12 text-[1rem]">
+                    {/* like option */}
+                    <div
+                    className="col-span-5 xsm:col-span-4 md:col-span-3 xl:col-span-2 flex items-center gap-x-1 outline-none cursor-pointer"
                     >
-                        {
-                            isLiked?
-                            <LikedIcon/>:<LikeIcon/>
-                        }
-                        <span>{likesCount}</span>
-                    </button>
-                    {/* commentsCount */}
-                    <button
-                        className="inline-flex items-center gap-x-1 outline-none"
+                        {/* Like Icon */}
+                        <Like 
+                        isLiked={isTweetLiked}
+                        likeToggleHandler={toggleLike}  
+                        />
+                        {/* Likes Count */}
+                        <span>{tweetLikesCount}</span>
+                    </div>
+                    {/* comments count */}
+                    <div
+                    className="col-span-5 xsm:col-span-4 md:col-span-3 xl:col-span-2 flex items-center gap-x-1 outline-none cursor-pointer"
                     >
-                        <CommentIcon/>
+                        {/* Comment Icon */}
+                        <span className='text-[1.5rem]'>
+                            <CommentIcon/>
+                        </span>
+                                                  
+                        {/* Comments Count */}
                         <span>{commentsCount}</span>
-                    </button>
+                    </div>
                 </div>
             </div>
         </div>

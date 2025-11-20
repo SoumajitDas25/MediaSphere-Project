@@ -6,6 +6,25 @@ const ApiInstance = new Api(routePrefix);
 const {api} = ApiInstance;
 const plainAxios = axios.create(); //for requesting to third-party urls
 
+const getAllVideos = async (page,limit)=>{
+    try
+    {
+        const response =  await api(
+            `/`,
+            { //will be converted to query params
+                page:page,
+                limit:limit
+            },
+            'GET'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 const getUserVideos = async (userId,page,limit)=>{
     try
     {
@@ -110,6 +129,7 @@ const getVideoById = async (videoId)=>{
 }
 
 export default {
+    getAllVideos,
     getUserVideos,
     publishVideo,
     getFileUploadCredentials,

@@ -5,6 +5,7 @@ import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
 import { User } from "../models/user.model.js"
+import eventBus from "../utils/eventBus.js"
 
 
 const createPlaylist = asyncHandler(async (req, res) => {
@@ -44,10 +45,10 @@ const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
 
     let data;
     //fetch page & limit from req query
-    const {page = 1, limit = 9} = req.query;
+    const {page = 1, limit = 9,videoId = null} = req.query;
 
     //fetch userId from req params
-    const {userId} = req.params
+    const {userId} = req.params;
     if(!isValidObjectId(userId))
     {
         throw new ApiError(400,"Invalid Object Id");
@@ -88,64 +89,132 @@ const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
         }
 
         //get paginated playlists for the user
-        const paginatedPlaylists = await Playlist.aggregate([
+        // const paginatedPlaylists = await Playlist.aggregate([
+        //     {
+        //         $match: { //get the user playlist docs
+        //             owner: new mongoose.Types.ObjectId(String(userId))
+        //         }
+        //     },
+        //     {   //No of docs to skip
+        //         $skip: (Number(page) - 1) * Number(limit)
+        //     },
+        //     {   //Max No of docs to be fetched
+        //         $limit: Number(limit)
+        //     },
+        //     {
+        //         $lookup: { //get the video docs in the playlist
+        //             from: "videos",
+        //             localField: "videos",
+        //             foreignField: "_id",
+        //             as: "videos"
+        //         }
+        //     },
+        //     { 
+        //     $addFields: { //count the videos docs in the playlists
+        //             videosCount: {
+        //                 $size: "$videos" 
+        //             }
+        //     }
+        //     },
+        //     {
+        //         $addFields: { //add the owner info to each doc
+        //             owner: {
+        //                 _id: user._id,
+        //                 username: user.username,
+        //                 channelName: user.channelName,
+        //                 avatar: user.avatar
+        //             }
+        //         }
+        //     },
+        //     {
+        //         $addFields:{ //to store the thumbnail of first video obj from vidoes[]
+        //             thumbnail: {
+        //                 $cond: {
+        //                     if: { 
+        //                         $gt: [{ $size: "$videos" }, 0] 
+        //                     }, // Check if the videos array has at least one video doc
+        //                     then: { 
+        //                         $first: "$videos.thumbnail"
+        //                     }, // Get the thumbnail of the first video doc
+        //                     else: null // Set to null if no video docs are found
+        //                 }
+        //             }
+        //         }
+        //     },
+        //     {
+
+        //     },
+        //     {
+        //         $project:{ //exclude the videos[] from each doc
+        //             videos: 0 
+        //         }
+        //     }
+        // ]);
+        const pipeline = [
             {
-                $match: { //get the user playlist docs
+                $match: {
                     owner: new mongoose.Types.ObjectId(String(userId))
                 }
             },
-            {   //No of docs to skip
+            {
                 $skip: (Number(page) - 1) * Number(limit)
             },
-            {   //Max No of docs to be fetched
+            {
                 $limit: Number(limit)
             },
             {
-                $lookup: { //get the video docs in the playlist
+                // Only fetch the first video doc (for thumbnail)
+                $lookup: {
                     from: "videos",
-                    localField: "videos",
-                    foreignField: "_id",
-                    as: "videos"
+                    let: { videoIds: "$videos" },
+                    pipeline: [
+                        { $match: { $expr: { $in: ["$_id", "$$videoIds"] } } },
+                        { $limit: 1 }, // grab only the first video doc
+                        { $project: { _id: 1, thumbnail: 1 } } // keep it minimal
+                    ],
+                    as: "firstVideo"
                 }
             },
-            { 
-            $addFields: { //count the videos docs in the playlists
-                    videosCount: {
-                        $size: "$videos" 
-                    }
-            }
-            },
             {
-                $addFields: { //add the owner info to each doc
+                // Add fields (videosCount, owner, thumbnail)
+                $addFields: {
+                    videosCount: { $size: "$videos" },
                     owner: {
                         _id: user._id,
                         username: user.username,
                         channelName: user.channelName,
                         avatar: user.avatar
-                    }
-                }
-            },
-            {
-                $addFields:{ //to store the thumbnail of first video obj from vidoes[]
+                    },
                     thumbnail: {
                         $cond: {
-                            if: { 
-                                $gt: [{ $size: "$videos" }, 0] 
-                            }, // Check if the videos array has at least one video doc
-                            then: { 
-                                $first: "$videos.thumbnail"
-                            }, // Get the thumbnail of the first video doc
-                            else: null // Set to null if no video docs are found
+                            if: { $gt: [{ $size: "$firstVideo" }, 0] },
+                            then: { $first: "$firstVideo.thumbnail" },
+                            else: null
                         }
                     }
                 }
             },
+            // ✅ Conditionally add isPresent only if videoId is passed
+            ...(videoId
+                ? [
+                    {
+                        $addFields: {
+                            isVideoPresent: {
+                                $in: [new mongoose.Types.ObjectId(String(videoId)), "$videos"]
+                            }
+                        }
+                    }
+                ]
+                : []),
             {
-                $project:{ //exclude the videos[] from each doc
-                    videos: 0 
+                $project: {
+                    firstVideo: 0,
+                    videos: 0
                 }
             }
-        ]);
+        ];
+
+        const paginatedPlaylists = await Playlist.aggregate(pipeline);
         if(!paginatedPlaylists)
         {
             throw new ApiError(500,"Something went wrong while fetching playlist documents");
@@ -436,14 +505,31 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(400,"Video already exist in the Playlist - Cannot insert same Video again")
     }
 
+    //check if the video is already added in any playlist before adding video to the playlist
+    const isVideoPresent = await Playlist.find(
+        {
+            videos:videoId
+        }
+    ).countDocuments() > 0;
+
     //add videoId to playlist document
-    playlist.videos.push(videoId);
-    playlist.save({validateBeforeSave: false});
+    const updatedPlaylist = await Playlist.updateOne(
+        { _id: playlistId },
+        { $push: { videos: videoId } }
+    );
+    if(!updatedPlaylist)
+    {
+        throw new ApiError(500,"Something went wrong while adding video to playlist");
+    }
+
+    //if video is not present in any playlist before add then emit updateIsVideoPresentInPlaylist event 
+    if(!isVideoPresent)
+    eventBus.emit('private:video:updateIsVideoPresentInPlaylist',{userId:req.user._id, id:videoId,data:true});
 
     //send the updated playlist doc as response
     res.status(200)
     .json(
-        new ApiResponse(200,playlist,"Video added to Playlist Successfully")
+        new ApiResponse(200,{},"Video added to Playlist Successfully")
     );
 
 })
@@ -475,14 +561,37 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(400,"Playlist is not owned by the current user");
     }
 
+    //check if the videoId is already present in the playlist
+    if(!playlist.videos.includes(videoId))
+    {
+        throw new ApiError(400,"Video does not exist in the Playlist")
+    }
+
     //remove videoId from playlist doc
-    playlist.videos.pop();
-    playlist.save({validateBeforeSave: false});
+    const updatedPlaylist = await Playlist.updateOne(
+        { _id: playlistId },
+        { $pull: { videos: videoId } }
+    );
+    if(!updatedPlaylist)
+    {
+        throw new ApiError(500,"Something went wrong while removing video from playlist");
+    }
+
+    //check if the video is added in any playlist after removing video from the playlist
+    const isVideoPresent = await Playlist.find(
+        {
+            videos:videoId
+        }
+    ).countDocuments() > 0;
+
+    //if video is not added in any playlist after removal then emit updateIsVideoPresentInPlaylist event 
+    if(!isVideoPresent)
+    eventBus.emit('private:video:updateIsVideoPresentInPlaylist',{userId:req.user._id, id:videoId,data:false});
 
     //send the updated playlist doc as response
     res.status(200)
     .json(
-        new ApiResponse(200,playlist,"Video removed from Playlist")
+        new ApiResponse(200,{},"Video removed from Playlist")
     );
 
 })

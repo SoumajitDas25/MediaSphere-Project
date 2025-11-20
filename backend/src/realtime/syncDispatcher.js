@@ -1,33 +1,37 @@
 import eventBus from "../utils/eventBus.js";
-import { scopedEvents,privateUserEvents } from "./events/eventNames.js";
+import { publicEvents,privateEvents } from "./events/eventNames.js";
 
 const initSyncDispatcher = (io) => {
 
     //listen domain/bus events via eventBus & emit socket events to frontend
 
-    //scoped events
-    for(const event of scopedEvents) 
+    //public events
+    for(const event of publicEvents) 
     {
         for(const name of event.names)
         {
-            if (!eventBus.hasListeners(`${event.namePrefix}:${name}`)) 
+            if (!eventBus.hasListeners(`${event.domain}:${name}`)) 
             {
-                eventBus.on(`${event.namePrefix}:${name}`, ({id,data}) => {
-                    io.to(`${event.namePrefix}:${String(id)}`).emit(`${event.namePrefix}:${name}`, data);
+                eventBus.on(`${event.domain}:${name}`, ({id,data}) => {
+                    io.to(`${event.domain}:${String(id)}`).emit(`${event.domain}:${name}`, data);
                 });
             }
         }
     }
 
-    //private user events
-    for(const event of privateUserEvents)
+    //private events
+    for(const event of privateEvents)
     {
-        if (!eventBus.hasListeners(`userPrivate:${event}`))
+        for(const name of event.names)
         {
-            eventBus.on(`userPrivate:${event}`, ({id,data}) => {
-                    io.to(`userPrivate:${String(id)}`).emit(`userPrivate:${event}`, data);
-                    console.log(String(id),data);
-            });
+
+            if (!eventBus.hasListeners(`private:${event.domain}:${name}`))
+            {
+                eventBus.on(`private:${event.domain}:${name}`, ({userId,id,data}) => {
+                        io.to(`private:${String(userId)}`).emit(`private:${event.domain}:${name}`, {id,data});
+                        // console.log(`private:${event.domain}:${name} event emitted to private:${String(userId)}`);
+                });
+            }
         }
     }
 

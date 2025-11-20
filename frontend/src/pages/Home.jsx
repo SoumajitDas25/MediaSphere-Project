@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
 import {Heading, ListContainer,ContentLoader} from '../components'
+import {videoAPI} from "../api";
 
 const Home = () => {
 
@@ -69,9 +69,32 @@ const Home = () => {
     //     },
     // ]
 
+    const {getAllVideos} = videoAPI;
+
+    const fetchAllVideos = async (page=1,limit=9)=>{
+      try
+      {
+        const response = await getAllVideos(page,limit);
+        // console.log(response.data.data);
+        return response.data.data;
+      }
+      catch(err)
+      {
+        console.log(err);
+        return null;
+      }
+    }
+
   return (
     <div>
-      <Heading className='py-2'>Home</Heading>     
+      {/* <Heading className='py-2'>Home</Heading>  */}
+      <ListContainer 
+      isPaginationEnabled={true} 
+      fetchPaginatedData={fetchAllVideos}
+      dataLimitPerPage={15}
+      allowDelayLoad={true}
+      delayLoadDurationInMs={700}
+      />
     </div>  
   )
 }
