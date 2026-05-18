@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {InputModal} from "../";
+import {InputModal} from "..";
 import { tweetAPI } from '../../api';
 import { useDispatch } from 'react-redux';
 import { setSuccessMessage, setFailureMessage } from '../../slices/messageSlice';

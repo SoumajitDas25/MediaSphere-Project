@@ -1,9 +1,5 @@
-import useUserEvents from "./useUserEvents";
-import useVideoEvents from "./useVideoEvents";
-import useTweetEvents from "./useTweetEvents";
+import useSyncEvents from "./useSyncEvents";
 
 export {
-    useUserEvents,
-    useVideoEvents,
-    useTweetEvents
+    useSyncEvents
 }

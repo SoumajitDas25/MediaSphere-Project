@@ -19,8 +19,8 @@ import ChannelCard from "./ChannelCard/ChannelCard";
 import CommentCard from "./CommentCard/CommentCard";
 import ReplyCard from "./ReplyCard/ReplyCard";
 import ContentLoader from "./Loader/ContentLoader";
-import UploadVideoModal from "./UploadVideo/UploadVideoModal";
-import CreateTweetModal from "./CreateTweetModal/CreateTweetModal";
+import UploadVideoModal from "./Modal/UploadVideoModal";
+import CreateTweetModal from "./Modal/CreateTweetModal";
 import PublishButton from "./PublishButton/PublishButton";
 import BgFreezer from "./BgFreezer/BgFreezer";
 import Modal from "./Modal/Modal";
@@ -31,8 +31,12 @@ import Message from "./Message/Message";
 import ImageCropper from "./ImageCropper/ImageCropper";
 import Heading from "./Heading";
 import Like from "./Like";
+import Switch from "./Switch";
 import CommentPanel from "./CommentPanel";
-import AddVideoToPlaylistModal from "./AddVideoToPlaylistModal";
+import AddVideoToPlaylistModal from "./Modal/AddVideoToPlaylistModal";
+import EditVideoModal from "./Modal/EditVideoModal";
+import EditPlaylistModal from "./Modal/EditPlaylistModal";
+import CreatePlaylistModal from "./Modal/CreatePlaylistModal";
 
 export {
     Header,
@@ -68,6 +72,10 @@ export {
     ImageCropper,
     Heading,
     Like,
+    Switch,
     CommentPanel,
-    AddVideoToPlaylistModal
+    AddVideoToPlaylistModal,
+    EditVideoModal,
+    EditPlaylistModal,
+    CreatePlaylistModal
 }

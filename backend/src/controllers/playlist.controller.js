@@ -7,41 +7,68 @@ import asyncHandler from "../utils/asyncHandler.js"
 import { User } from "../models/user.model.js"
 import eventBus from "../utils/eventBus.js"
 
-
 const createPlaylist = asyncHandler(async (req, res) => {
 
     //fetch playlist details from req body
-    let name,description;
-    if(req.body && (req.body.name && req.body.description))
+    const {name,description,videoId,isPrivate = true} = req.body;
+    if(!(name && description && videoId ))
     {
-        name = req.body.name;
-        description = req.body.description;    
-    }
-    if(!(name && description))
-    {
-        throw new ApiError(400,"Playlist name & description are required");
+        throw new ApiError(400,"Playlist name or description or video id is missing");
     }
 
     //create entry in db
     const playlist = await Playlist.create({
         name:name,
         description: description,
-        owner: req.user._id
+        owner: req.user._id,
+        isPrivate: isPrivate,
+        videos: [videoId]
     });
     if(!playlist)
     {
         throw new ApiError(500,"Something went wrong while creating Playlist document");
     }
 
+    //emit public sync event for updating playlistCount
+    const updatedPlaylistCount = await Playlist.countDocuments({
+        owner: req.user._id
+    });
+    // eventBus.emit("user:updatePlaylistCount",{id:req.user._id,data:updatedPlaylistCount});
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"update",
+            field:"playlistCount",
+            value: updatedPlaylistCount
+        }
+    );
+
+    //send reloadPlaylistList event
+    // eventBus.emit("user:reloadPlaylistList",{id:req.user._id,data:'deleteOne'});
+    //emit public sync event for reloading playlistList
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"playlistList",
+            value:"insertOne"
+        }
+    );
+
     //send the playlist document as response
     res.status(201)
     .json(
-        new ApiResponse(201,playlist,"Playlist created Successfully")
+        new ApiResponse(201,{},"Playlist created Successfully")
     );
 
 })
 
-const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
+const getAllUserPlaylists = asyncHandler(async (req, res) => {
 
     let data;
     //fetch page & limit from req query
@@ -88,68 +115,6 @@ const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
             throw new ApiError(400,"Page Number exceeds Max Page Number");
         }
 
-        //get paginated playlists for the user
-        // const paginatedPlaylists = await Playlist.aggregate([
-        //     {
-        //         $match: { //get the user playlist docs
-        //             owner: new mongoose.Types.ObjectId(String(userId))
-        //         }
-        //     },
-        //     {   //No of docs to skip
-        //         $skip: (Number(page) - 1) * Number(limit)
-        //     },
-        //     {   //Max No of docs to be fetched
-        //         $limit: Number(limit)
-        //     },
-        //     {
-        //         $lookup: { //get the video docs in the playlist
-        //             from: "videos",
-        //             localField: "videos",
-        //             foreignField: "_id",
-        //             as: "videos"
-        //         }
-        //     },
-        //     { 
-        //     $addFields: { //count the videos docs in the playlists
-        //             videosCount: {
-        //                 $size: "$videos" 
-        //             }
-        //     }
-        //     },
-        //     {
-        //         $addFields: { //add the owner info to each doc
-        //             owner: {
-        //                 _id: user._id,
-        //                 username: user.username,
-        //                 channelName: user.channelName,
-        //                 avatar: user.avatar
-        //             }
-        //         }
-        //     },
-        //     {
-        //         $addFields:{ //to store the thumbnail of first video obj from vidoes[]
-        //             thumbnail: {
-        //                 $cond: {
-        //                     if: { 
-        //                         $gt: [{ $size: "$videos" }, 0] 
-        //                     }, // Check if the videos array has at least one video doc
-        //                     then: { 
-        //                         $first: "$videos.thumbnail"
-        //                     }, // Get the thumbnail of the first video doc
-        //                     else: null // Set to null if no video docs are found
-        //                 }
-        //             }
-        //         }
-        //     },
-        //     {
-
-        //     },
-        //     {
-        //         $project:{ //exclude the videos[] from each doc
-        //             videos: 0 
-        //         }
-        //     }
-        // ]);
         const pipeline = [
             {
                 $match: {
@@ -176,9 +141,196 @@ const getPaginatedUserPlaylists = asyncHandler(async (req, res) => {
                 }
             },
             {
+                $lookup: {
+                from: "videos",
+                let: { videoIds: "$videos" },
+                pipeline: [
+                    {
+                    $match: {
+                        $expr: {
+                            $and: [
+                                { $in: ["$_id", "$$videoIds"] },
+                                { $eq: ["$isPublished", true] }
+                            ]
+                        }
+                    }
+                    },
+                    { 
+                        $project: { 
+                            _id: 1 
+                        } 
+                    }
+                ],
+                as: "publishedVideos"
+                }
+            },
+            {
                 // Add fields (videosCount, owner, thumbnail)
                 $addFields: {
-                    videosCount: { $size: "$videos" },
+                    videosCount: { $size: "$publishedVideos" },
+                    owner: {
+                        _id: user._id,
+                        username: user.username,
+                        channelName: user.channelName,
+                        avatar: user.avatar
+                    },
+                    thumbnail: {
+                        $cond: {
+                            if: { $gt: [{ $size: "$firstVideo" }, 0] },
+                            then: { $first: "$firstVideo.thumbnail" },
+                            else: null
+                        }
+                    }
+                }
+            },
+            // ✅ Conditionally add isPresent only if videoId is passed
+            ...(videoId
+                ? [
+                    {
+                        $addFields: {
+                            isVideoPresent: {
+                                $in: [new mongoose.Types.ObjectId(String(videoId)), "$videos"]
+                            }
+                        }
+                    }
+                ]
+                : []),
+            {
+                $project: {
+                    firstVideo: 0,
+                    videos: 0
+                }
+            }
+        ];
+
+        const paginatedPlaylists = await Playlist.aggregate(pipeline);
+        if(!paginatedPlaylists)
+        {
+            throw new ApiError(500,"Something went wrong while fetching playlist documents");
+        }
+
+        data={
+            totalPlaylists: totalPlaylists.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedPlaylists,
+        };
+    }
+
+    //send the paginatedPlaylists[] as response
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            data,
+            "Paginated User Playlists fetched Successfully"
+        )
+    );
+
+})
+
+const getPublicUserPlaylists = asyncHandler(async (req, res) => {
+
+    let data;
+    //fetch page & limit from req query
+    const {page = 1, limit = 9,videoId = null} = req.query;
+
+    //fetch userId from req params
+    const {userId} = req.params;
+    if(!isValidObjectId(userId))
+    {
+        throw new ApiError(400,"Invalid Object Id");
+    }
+
+    //check if the user exists or not
+    const user = await User.findById(userId);
+    if(!user)
+    {
+        throw new ApiError(400,"Incorrect User Id - User does not exist");
+    }
+
+    //get all playlists for the user
+    const totalPlaylists = await Playlist.find(
+        {
+            owner: userId,
+            isPrivate: false
+        }
+    );
+    if(!totalPlaylists)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total User Playlists");
+    }
+    if(totalPlaylists.length < 1)
+    {
+        data={
+            totalPlaylists:0,
+            paginatedContent:null,
+            totalPages:0
+        }
+    }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalPlaylists.length / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
+
+        const pipeline = [
+            {
+                $match: {
+                    owner: new mongoose.Types.ObjectId(String(userId)),
+                    isPrivate: false
+                }
+            },
+            {
+                $skip: (Number(page) - 1) * Number(limit)
+            },
+            {
+                $limit: Number(limit)
+            },
+            {
+                // Only fetch the first video doc (for thumbnail)
+                $lookup: {
+                    from: "videos",
+                    let: { videoIds: "$videos" },
+                    pipeline: [
+                        { $match: { $expr: { $in: ["$_id", "$$videoIds"] } } },
+                        { $limit: 1 }, // grab only the first video doc
+                        { $project: { _id: 1, thumbnail: 1 } } // keep it minimal
+                    ],
+                    as: "firstVideo"
+                }
+            },
+            {
+                $lookup: {
+                from: "videos",
+                let: { videoIds: "$videos" },
+                pipeline: [
+                    {
+                    $match: {
+                        $expr: {
+                            $and: [
+                                { $in: ["$_id", "$$videoIds"] },
+                                { $eq: ["$isPublished", true] }
+                            ]
+                        }
+                    }
+                    },
+                    { 
+                        $project: { 
+                            _id: 1 
+                        } 
+                    }
+                ],
+                as: "publishedVideos"
+                }
+            },
+            {
+                // Add fields (videosCount, owner, thumbnail)
+                $addFields: {
+                    videosCount: { $size: "$publishedVideos" },
                     owner: {
                         _id: user._id,
                         username: user.username,
@@ -256,13 +408,37 @@ const getPlaylistInfoById = asyncHandler(async (req,res)=>{
                 _id: new mongoose.Types.ObjectId(String(playlistId))
             }
         },
-        { 
-            $addFields: { //count the videos in the playlists
-                 videosCount: {
-                     $size: "$videos" 
-                 }
+        {
+            $lookup: {
+            from: "videos",
+            let: { videoIds: "$videos" },
+            pipeline: [
+                {
+                $match: {
+                    $expr: {
+                        $and: [
+                            { $in: ["$_id", "$$videoIds"] },
+                            { $eq: ["$isPublished", true] }
+                        ]
+                    }
+                }
+                },
+                { 
+                    $project: { 
+                        _id: 1 
+                    } 
+                }
+            ],
+            as: "publishedVideos"
             }
-         },
+        },
+        {
+            $addFields: {
+                videosCount: { 
+                    $size: "$publishedVideos" 
+                }
+            }
+        },
          {
             $lookup:{ // get the owner info
                 from:"users",
@@ -325,7 +501,8 @@ const getPlaylistInfoById = asyncHandler(async (req,res)=>{
          {
             $project: {
                 videos: 0,
-                firstVideo: 0
+                firstVideo: 0,
+                publishedVideos: 0
             }
          }
     ])
@@ -371,7 +548,11 @@ const getPlaylistVideosById = asyncHandler(async (req, res) => {
     }
 
     //get all videos for the playlist
-    const totalPlaylistVideos = playlist.videos.length;
+    const totalPlaylistVideos = await Video.find({
+        _id: { $in: playlist.videos },
+        isPublished: true
+    }).countDocuments();
+    // const totalPlaylistVideos = playlist.videos.length;
 
     if(!totalPlaylistVideos)
     {
@@ -399,6 +580,11 @@ const getPlaylistVideosById = asyncHandler(async (req, res) => {
                 foreignField: "_id",
                 as: "videos",
                 pipeline: [
+                    {
+                        $match:{
+                            isPublished: true
+                        }
+                    },
                     {   //No of video docs to skip
                         $skip: (Number(page) - 1) * Number(limit)
                     },
@@ -474,6 +660,7 @@ const getPlaylistVideosById = asyncHandler(async (req, res) => {
 })
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
+
     //fetch playlistId and videoId from req params
     const {playlistId, videoId} = req.params
     if(!(isValidObjectId(playlistId) &&  isValidObjectId(videoId)))
@@ -521,10 +708,49 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     {
         throw new ApiError(500,"Something went wrong while adding video to playlist");
     }
-
-    //if video is not present in any playlist before add then emit updateIsVideoPresentInPlaylist event 
+ 
     if(!isVideoPresent)
-    eventBus.emit('private:video:updateIsVideoPresentInPlaylist',{userId:req.user._id, id:videoId,data:true});
+    // eventBus.emit('private:video:updateIsVideoPresentInPlaylist',{userId:req.user._id, id:videoId,data:true});
+    //emit private sync event for updating isPresentInPlaylist
+    eventBus.emit(
+        "private:sync",
+        {
+            userId:req.user._id,
+            id:videoId,
+            domain:"video",
+            action:"update",
+            field:"isPresentInPlaylist",
+            value:true
+        }
+    );
+
+    //send reloadPlaylistList event
+    // eventBus.broadcast("user:reloadPlaylistList",req.socketId,{id:req.user._id,data:'current'});
+    //emit public sync event for reloading videoList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"videoList",
+            value: "insertOne"
+        }
+    );
+
+    //emit public sync event for reloading playlistList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"playlistList",
+            value: "current"
+        }
+    );
 
     //send the updated playlist doc as response
     res.status(200)
@@ -568,13 +794,25 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     }
 
     //remove videoId from playlist doc
-    const updatedPlaylist = await Playlist.updateOne(
-        { _id: playlistId },
-        { $pull: { videos: videoId } }
+    const updatedPlaylist = await Playlist.findByIdAndUpdate(
+        playlistId,
+        { $pull: { videos: videoId } },
+        {new:true}
     );
     if(!updatedPlaylist)
     {
         throw new ApiError(500,"Something went wrong while removing video from playlist");
+    }
+
+    //check whether the playlist is empty after removing the video 
+    if(updatedPlaylist.videos?.length===0)
+    {
+        //if empty, then delete the playlist doc
+        const playlist = await Playlist.findByIdAndDelete(playlistId);
+        if(!playlist)
+        {
+            throw new ApiError(500,"Something went wrong while deleting Playlist document")
+        }
     }
 
     //check if the video is added in any playlist after removing video from the playlist
@@ -583,10 +821,49 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
             videos:videoId
         }
     ).countDocuments() > 0;
-
-    //if video is not added in any playlist after removal then emit updateIsVideoPresentInPlaylist event 
+ 
     if(!isVideoPresent)
-    eventBus.emit('private:video:updateIsVideoPresentInPlaylist',{userId:req.user._id, id:videoId,data:false});
+    // eventBus.emit('private:video:updateIsVideoPresentInPlaylist',{userId:req.user._id, id:videoId,data:false});
+    //emit private sync event for updating isPresentInPlaylist
+    eventBus.emit(
+        "private:sync",
+        {
+            userId:req.user._id,
+            id:videoId,
+            domain:"video",
+            action:"update",
+            field:"isPresentInPlaylist",
+            value:false
+        }
+    );
+
+    //send reloadPlaylistList event
+    // eventBus.broadcast("user:reloadPlaylistList",req.socketId,{id:req.user._id,data:'current'});
+    //emit public sync event for reloading videoList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"videoList",
+            value: "deleteOne"
+        }
+    );
+
+    //emit public sync event for reloading playlistList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"playlistList",
+            value: "current"
+        }
+    );
 
     //send the updated playlist doc as response
     res.status(200)
@@ -595,6 +872,105 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     );
 
 })
+
+const updatePlaylist = asyncHandler(async (req, res) => {
+
+    //fetch playlistId from req params
+    const { playlistId } = req.params;
+    if (!isValidObjectId(playlistId)) {
+        throw new ApiError(400, "Invalid Playlist Id");
+    }
+
+    //check if the playlist exists or not
+    const playlist = await Playlist.findById(playlistId);
+    if (!playlist) {
+        throw new ApiError(404, "Playlist does not exist");
+    }
+
+    //check if the playlist owner is current user or not
+    if (String(playlist.owner) !== String(req.user._id)) {
+        throw new ApiError(403, "Playlist is not owned by the current user");
+    }
+
+    //Destructure optional fields
+    const { name = null, description = null } = req.body;
+
+    const updatePayload = {};
+
+    //store name if present
+    if (name !== null && name.trim() !== playlist.name) {
+        updatePayload.name = name.trim();
+    }
+
+    //store description if present
+    if (description !== null && description.trim() !== playlist.description) {
+        updatePayload.description = description.trim();
+    }
+
+    //if nothing is present then give an error message
+    if (Object.keys(updatePayload).length === 0) 
+    {
+        throw new ApiError(400, "No changes provided for update");
+    }
+
+    //update the playlist doc with the changed data
+    const updatedPlaylist = await Playlist.findByIdAndUpdate(
+        playlistId,
+        updatePayload,
+        { new: true }
+    );
+
+    //send reloadPlaylistList event
+    // eventBus.emit("user:reloadPlaylistList",{id:req.user._id,data:'current'});
+    //emit public sync event for reloading playlistList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"playlistList",
+            value: "current"
+        }
+    );
+
+    if(name)
+    //emit public sync event for updating name
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:playlistId,
+            domain:"playlist",
+            action:"update",
+            field:"name",
+            value: updatedPlaylist.name
+        }
+    );
+    if(description)
+    //emit public sync event for updating description
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:playlistId,
+            domain:"playlist",
+            action:"update",
+            field:"description",
+            value: updatedPlaylist.description
+        }
+    );
+
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            updatedPlaylist, 
+            "Video updated successfully"
+        )
+    );
+});
 
 const deletePlaylist = asyncHandler(async (req, res) => {
 
@@ -617,6 +993,51 @@ const deletePlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while deleting Playlist document")
     }
 
+    //emit public sync event for updating playlistCount
+    const updatedPlaylistCount = await Playlist.countDocuments({
+        owner: req.user._id
+    });
+    // eventBus.emit("user:updatePlaylistCount",{id:req.user._id,data:updatedPlaylistCount});
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"update",
+            field:"playlistCount",
+            value: updatedPlaylistCount
+        }
+    );
+    
+    //send reloadPlaylistList event
+    // eventBus.emit("user:reloadPlaylistList",{id:req.user._id,data:'deleteOne'});
+    //emit public sync event for reloading playlistList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"playlistList",
+            value: "deleteOne"
+        }
+    );
+
+    //send deletePlaylist event
+    // eventBus.broadcast("playlist:deletePlaylist",req.socketId,{id:playlistId,data:true});
+    //emit public sync event for deleting playlist
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:playlistId,
+            domain:"playlist",
+            action:"delete"
+        }
+    );
+
     res.status(200)
     .json(
         new ApiResponse(200,{},"Playlist deleted Successfully")
@@ -624,60 +1045,72 @@ const deletePlaylist = asyncHandler(async (req, res) => {
 
 })
 
-const updatePlaylist = asyncHandler(async (req, res) => {
+const toggleVisibilityStatus = asyncHandler(async (req, res) => {
 
     //fetch playlistId from req params
-    const {playlistId} = req.params
+    const { playlistId } = req.params;
     if(!isValidObjectId(playlistId))
     {
         throw new ApiError(400,"Invalid Playlist Id");
     }
 
-    //fetch name,description(to be updated) from req body
-    let name,description;
-    if(req.body && (req.body.name && req.body.description))
-    {
-        name = req.body.name;
-        description = req.body.description;
-    }
-    if(!(name && description))
-    {
-        throw new ApiError(400,"Playlist name or description is missing");
-    }
-
-    //find & update the playlist doc
-    const playlist = await Playlist.findOneAndUpdate(
+    //find & update the playlist
+    const updatedPlaylist = await Playlist.findOneAndUpdate(
         {
-            _id: playlistId,
-            owner: req.user._id
+            _id:playlistId,
+            owner:req.user._id
         },
-        {
-            $set: {
-                name: name,
-                description: description
-            }
-        },
-        {new: true}
+        [
+            { $set: { isPrivate: { $not: "$isPrivate" } } }
+        ],
+        {new:true}
     );
-    if(!playlist)
-    {
-        throw new ApiError(500,"Something went wrong while updating Playlist document");
-    }
 
-    //send the updated playlist as response
+    //send reloadPlaylistList event
+    // eventBus.broadcast("user:reloadPlaylistList",req.socketId,{id:req.user._id,data:'current'});
+    //emit public sync event for reloading playlistList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"playlistList",
+            value:"current"
+        }
+    );
+
+    //send updatePlaylist event
+    // eventBus.broadcast("playlist:updatePlaylist",req.socketId,{id:req.user._id,data:{isPrivate:updatedPlaylist.isPrivate}});
+    //emit public sync event for updating isPrivate
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:playlistId,
+            domain:"playlist",
+            action:"update",
+            field:"isPrivate",
+            value:updatedPlaylist.isPrivate
+        }
+    );
+
     res.status(200)
     .json(
-        new ApiResponse(200,playlist,"Playlist updated Successfully")
+        new ApiResponse(200,updatedPlaylist.isPrivate,"Playlist visibility status updated Successfully")
     );
 })
 
 export {
     createPlaylist,
-    getPaginatedUserPlaylists,
+    getAllUserPlaylists,
+    getPublicUserPlaylists,
     getPlaylistInfoById,
     getPlaylistVideosById,
     addVideoToPlaylist,
     removeVideoFromPlaylist,
+    updatePlaylist,
     deletePlaylist,
-    updatePlaylist
+    toggleVisibilityStatus
 }

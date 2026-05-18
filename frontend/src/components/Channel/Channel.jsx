@@ -6,7 +6,7 @@ import { useParams } from 'react-router-dom'
 import { userAPI,videoAPI,tweetAPI,playlistAPI,connectionAPI } from '../../api'
 import {setAvatar as setUserAvatar,setCoverImage as setUserCoverImage} from "../../slices/userSlice"
 import {setIsCropperOpened,setCropProperties,setCropReset,setCropLoading} from '../../slices/cropSlice'
-import {useUserEvents} from "../../events/hooks"
+import {useSyncEvents} from "../../events/hooks"
 
 const Channel = () => {
 
@@ -27,11 +27,12 @@ const Channel = () => {
     const [isSubscribeButtonloading,setIsSubscribeButtonLoading] = useState(false);
     const {isCropperOpened,image:cropImage,aspectRatio:cropAspectRatio,cropSource,isCompleted:isCropCompleted,error:cropError} = useSelector(state=>state.crop);
     const listRef = useRef(null);
+    const activeContentRef = useRef(null);
 
     const {getUserChannelProfile,updateAvatar,updateCoverImage} = userAPI;
-    const {getUserVideos} = videoAPI;
-    const {getUserTweets} = tweetAPI;
-    const {getUserPlaylists} = playlistAPI;
+    const {getPublishedUserVideos} = videoAPI;
+    const {getPublishedUserTweets} = tweetAPI;
+    const {getPublicUserPlaylists} = playlistAPI;
     const {toggleSubscription} = connectionAPI;
 
     const checkisUserOwnProfile = () =>{
@@ -92,7 +93,7 @@ const Channel = () => {
             content: {
                 type: 'Video',
                 getData: (userId, page, limit) => {
-                    return getUserVideos(userId, page, limit);
+                    return getPublishedUserVideos(userId, page, limit);
                 }
             }
         },
@@ -102,7 +103,7 @@ const Channel = () => {
             content: {
                 type: 'Tweet',
                 getData: (userId, page, limit) => {
-                    return getUserTweets(userId, page, limit);
+                    return getPublishedUserTweets(userId, page, limit);
                 }
             }
         },
@@ -112,7 +113,7 @@ const Channel = () => {
             content: {
                 type: 'Playlist',
                 getData: (userId, page, limit) => {
-                    return getUserPlaylists(userId, page, limit);
+                    return getPublicUserPlaylists(userId, page, limit);
                 }
             }
         }
@@ -123,8 +124,8 @@ const Channel = () => {
         {
             setIsSubscribeButtonLoading(true);
             const response = await toggleSubscription(channelProfile._id);
-            // setIsSubscribed(response.data.data.isSubscribed);
-            // console.log(response); 
+            setIsSubscribed(response.data.data.isSubscribed);
+            // console.log("issubscribed: ", response.data.data.isSubscribed);
         }
         catch(error)
         {
@@ -140,26 +141,25 @@ const Channel = () => {
 
         try
         {
-            let response;
-
-            switch(activeContent.type)
-            {
-                case 'Video':
-                {
-                    response = await getUserVideos(channelProfile._id,pageIndex,limit);
-                    break;
-                }
-                case 'Tweet':
-                {
-                    response = await getUserTweets(channelProfile._id,pageIndex,limit);
-                    break;
-                }
-                case 'Playlist':
-                {
-                    response = await getUserPlaylists(channelProfile._id,pageIndex,limit);
-                    break;
-                }
-            }
+            // switch(activeContent.type)
+            // {
+            //     case 'Video':
+            //     {
+            //         response = await getUserVideos(channelProfile._id,pageIndex,limit);
+            //         break;
+            //     }
+            //     case 'Tweet':
+            //     {
+            //         response = await getUserTweets(channelProfile._id,pageIndex,limit);
+            //         break;
+            //     }
+            //     case 'Playlist':
+            //     {
+            //         response = await getUserPlaylists(channelProfile._id,pageIndex,limit);
+            //         break;
+            //     }
+            // }
+            const response = await activeContent.getData(channelProfile._id,pageIndex,limit)
             if (response.status < 200 || response.status >= 300)
             {
                 //error
@@ -179,6 +179,11 @@ const Channel = () => {
             return null;
         }
     }
+
+    useEffect(()=>{
+        //track activeContent
+        activeContentRef.current=activeContent;
+    },[activeContent])
 
     useEffect(()=> {
 
@@ -223,52 +228,123 @@ const Channel = () => {
 
     },[]);
 
-    useUserEvents({
-        data:{
-            userId:(channelProfile && channelProfile._id)?channelProfile._id:null
+    // useUserEvents({
+    //     data:{
+    //         userId:(channelProfile && channelProfile._id)?channelProfile._id:null
+    //     },
+    //     publicListeners:{
+    //         updateAvatar:(payload)=>{
+    //             setAvatar(payload);
+    //         },
+    //         updateCoverImage:(payload)=>{
+    //             setCoverImage(payload);
+    //         },
+    //         updateSubscriberCount:(payload)=>{
+    //         //   console.log("Subscriber Count: ",payload);
+    //           setSubscriberCount(payload);
+    //         },
+    //         updateSubscriptionCount:(payload)=>{
+    //         //   console.log("Subscription Count: ",payload);
+    //           setSubscriptionCount(payload);
+    //         },
+    //         updateVideoCount:(payload)=>{
+    //             setVideosCount(payload);
+    //         },
+    //         reloadVideoList:(payload)=>{
+    //             if(activeContentRef.current.type.toLowerCase()==='video')
+    //             {
+    //                 listRef.current.reload(payload);
+    //             }
+    //         },
+    //         reloadTweetList:(payload)=>{
+    //             if(activeContentRef.current.type.toLowerCase()==='tweet')
+    //             {
+    //                 listRef.current.reload(payload);
+    //             }
+    //         },
+    //         reloadPlaylistList:(payload)=>{
+    //             if(activeContentRef.current.type.toLowerCase()==='playlist')
+    //             {
+    //                 listRef.current.reload(payload);      
+    //             }
+    //         }
+    //     },
+    //     privateListeners:{
+    //         updateIsSubscribed:(payload)=>{
+    //             if(userId===payload.id)
+    //             {
+    //                 setIsSubscribed(payload.data); 
+    //                 // console.log(payload.data);      
+    //             }
+    //         }
+    //     }
+    // });
+
+    //sync events for user domain
+    useSyncEvents({
+      domain:'user',
+      id:(channelProfile && channelProfile._id)?channelProfile._id:null,
+      publicHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
+          {
+            case 'avatar':
+              setAvatar(value);
+              break;
+
+            case 'coverimage':
+              setCoverImage(value);
+              break;
+
+            case 'subscribercount':
+              setSubscriberCount(value);
+              break;
+
+            case 'subscriptioncount':
+              setSubscriptionCount(value);
+              break;
+
+            case 'videocount':
+              setVideosCount(value);
+              break;
+          }
         },
-        publicListeners:{
-            updateAvatar:(payload)=>{
-                setAvatar(payload);
-            },
-            updateCoverImage:(payload)=>{
-                setCoverImage(payload);
-            },
-            updateSubscriberCount:(payload)=>{
-            //   console.log("Subscriber Count: ",payload);
-              setSubscriberCount(payload);
-            },
-            updateSubscriptionCount:(payload)=>{
-            //   console.log("Subscription Count: ",payload);
-              setSubscriptionCount(payload);
-            },
-            updateVideoCount:(payload)=>{
-                setVideosCount(payload);
-            },
-            reloadVideoList:(payload)=>{
-                listRef.current.reload(payload);
-                console.log("reloadVideoList: ",payload);
-            },
-            reloadTweetList:(payload)=>{
-                console.log(activeContent.type);
-                // if(activeContent.type==='Tweet')
-                    listRef.current.reload(payload);
-                console.log("reloadTweetList: ",payload);
-            },
-            reloadPlaylistList:(payload)=>{
-                listRef.current.reload(payload);      
-                console.log("reloadPlaylistList: ",payload);
-            }
-        },
-        privateListeners:{
-            updateIsSubscribed:(payload)=>{
-                if(userId===payload.id)
-                {
-                    setIsSubscribed(payload.data); 
-                    // console.log(payload.data);      
-                }
+        onReload: ({source,value})=>{
+            switch(source)
+            {
+                case 'videolist':
+                    if(activeContentRef.current.type.toLowerCase()==='video')
+                    {
+                        listRef.current.reload(value);
+                    }
+                    break;
+
+                case 'tweetlist':
+                    if(activeContentRef.current.type.toLowerCase()==='tweet')
+                    {
+                        listRef.current.reload(value);
+                    }
+                    break;
+
+                case 'playlistlist':
+                    if(activeContentRef.current.type.toLowerCase()==='playlist')
+                    {
+                        listRef.current.reload(value);
+                    }
+                    break;
             }
         }
+      },
+      privateHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
+          {
+            case 'issubscribed':
+              setIsSubscribed(value);
+              break;
+          }
+        }
+      }
     });
 
     return (

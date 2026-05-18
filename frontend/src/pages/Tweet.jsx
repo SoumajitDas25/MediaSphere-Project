@@ -4,7 +4,7 @@ import { DeleteIcon, EditIcon } from "../assets/icons"
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { connectionAPI, likeAPI, tweetAPI } from '../api';
-import { useUserEvents,useTweetEvents } from '../events/hooks';
+import { useSyncEvents } from '../events/hooks';
 
 const Tweet = () => {
 
@@ -174,7 +174,7 @@ const Tweet = () => {
             const response = await deleteTweet(tweetId);
             console.log(response.data.data);
             setEnableDelete(false);
-            // navigate('/'); //navigate to home page
+            navigate('/'); //navigate to home page
         }
         catch(error)
         {
@@ -197,55 +197,72 @@ const Tweet = () => {
         getTweetDetails();
     },[])
 
-    useUserEvents({
-      data:{
-        userId: (data && data.owner && data.owner._id)?data.owner._id:null
-      },
-      publicListeners:{
-        updateSubscriberCount:(payload)=>{
-          console.log("Subscriber Count: ",payload);
-          setTweetOwner(prev=>({...prev,subscribersCount:payload}))
-        },
-        updateAvatar:(payload)=>{
-          setTweetOwner(prev=>({...prev,avatar:payload}))
-        },
-        updateChannelName:(payload)=>{
-          setTweetOwner(prev=>({...prev,channelName:payload}))
-        }
-      },
-      privateListeners:{
-        updateIsSubscribed:(payload)=>{
-          if(userId==payload.id)
+    //sync events for tweet domain
+    useSyncEvents({
+      domain:'tweet',
+      id:tweetId,
+      publicHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
           {
-            setIsSubscribed(payload.data);          
+            case 'content':
+              setTweetContent(value);
+              break;
+            
+            case 'likecount':
+              setLikeCount(value);
+              break;
+
+            case 'commentcount':
+              setCommentCount(value);
+              break;
+          }
+        },
+        onDelete:()=>{
+          navigate("/"); //navigate to home page
+        },
+      },
+      privateHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
+          {
+            case 'isliked':
+              setIsLiked(value);
+              break;
           }
         }
       }
     });
 
-    useTweetEvents({
-      data:{
-        tweetId:tweetId
-      },
-      publicListeners:{
-        updateTweet:(payload)=>{
-            console.log("updated tweet: ",payload);
-            setTweetContent(payload);
-        },
-        deleteTweet:(payload)=>{
-            console.log("tweet deleted: ",payload);
-            navigate("/"); //navigate to home page
-        },
-        updateTweetLikeCount:(payload)=>{
-          console.log("Tweet Like Count: ",payload);
-          setLikeCount(payload);
+    //sync events for user domain
+    useSyncEvents({
+      domain:'user',
+      id: (data && data.owner && data.owner._id)?data.owner._id:null,
+      publicHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
+          {
+            case 'subscribercount':
+              setTweetOwner(prev=>({...prev,subscribersCount:value}))
+              break;
+            
+            case 'avatar':
+              setTweetOwner(prev=>({...prev,avatar:value}))
+              break;
+
+            case 'channelName':
+              setTweetOwner(prev=>({...prev,channelName:value}))
+              break;
+          }
         }
       },
-      privateListeners:{
-        updateIsTweetLiked:(payload)=>{
-          if(tweetId === payload.id)
+      privateHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
           {
-            setIsLiked(payload.data);
+            case 'issubscribed':
+              setIsSubscribed(value);
+              break;
           }
         }
       }

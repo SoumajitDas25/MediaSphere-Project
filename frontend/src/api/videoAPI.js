@@ -25,7 +25,7 @@ const getAllVideos = async (page,limit)=>{
     }
 }
 
-const getUserVideos = async (userId,page,limit)=>{
+const getAllUserVideos = async (userId,page,limit)=>{
     try
     {
         const response =  await api(
@@ -44,6 +44,24 @@ const getUserVideos = async (userId,page,limit)=>{
     }
 }
 
+const getPublishedUserVideos = async (userId,page,limit)=>{
+    try
+    {
+        const response =  await api(
+            `/published/user/${userId}`,
+            { //will be converted to query params
+                page:page,
+                limit:limit
+            },
+            'GET'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
 const publishVideo = async(publishVideoData)=>{
     try
     {
@@ -128,11 +146,76 @@ const getVideoById = async (videoId)=>{
     }
 }
 
+const updateVideo = async (videoId,updateVideoData)=>{
+    try
+    {
+        const {thumbnail=null,title=null,description=null}=updateVideoData;
+
+        const formData= new FormData();
+        if(thumbnail)
+        formData.append('thumbnail',thumbnail);
+        if(title)
+        formData.append('title',title);
+        if(description)
+        formData.append('description',description);
+
+        const response =  await api(
+            `/${videoId}`,
+            formData,
+            'PATCH',
+            {
+            'Content-Type': 'multipart/form-data'
+            }
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const deleteVideo = async (videoId) =>{
+    try
+    {
+        const response =  await api(
+            `/${videoId}`,
+            {},
+            'DELETE'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const toggleVideoPublishStatus = async (videoId)=>{
+    try
+    {
+        const response =  await api(
+            `/toggle/publish/${videoId}`,
+            {},
+            'PATCH'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 export default {
     getAllVideos,
-    getUserVideos,
+    getAllUserVideos,
+    getPublishedUserVideos,
     publishVideo,
     getFileUploadCredentials,
     uploadFileToCloudinary,
-    getVideoById
+    getVideoById,
+    updateVideo,
+    deleteVideo,
+    toggleVideoPublishStatus
 }

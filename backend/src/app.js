@@ -1,6 +1,8 @@
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import cors from 'cors';
+import ApiError from './utils/ApiError.js';
+import errorHandler from './middlewares/errorHandler.middleware.js';
 
 const app = express();
 
@@ -41,5 +43,12 @@ app.use("/api/v1/playlists",playlistRouter);
 app.use("/api/v1/dashboard",dashboardRouter);
 app.use("/api/v1/replies",replyRouter);
 app.use("/api/v1/socket",socketRouter);
+
+//route not found middleware
+app.use((req,res)=>{
+    throw new ApiError(404,"Route not found");
+})
+//error handler middleware
+app.use(errorHandler);
 
 export { app };

@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import { connectionAPI, videoAPI, likeAPI } from '../api';
+import { connectionAPI, videoAPI, likeAPI, playlistAPI } from '../api';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader,Button, CommentPanel,Like,AddVideoToPlaylistModal} from '../components';
+import { Loader,Button, CommentPanel,Like,AddVideoToPlaylistModal,CreatePlaylistModal,Message} from '../components';
 import {CommentIcon,PlaylistAddIcon,PlaylistAddedIcon} from "../assets/icons"
-import { useSelector } from 'react-redux';
-import {useUserEvents,useVideoEvents} from "../events/hooks"
+import { useSelector,useDispatch } from 'react-redux';
+import { setSuccessMessage,setFailureMessage } from '../slices/messageSlice';
+import {useSyncEvents} from '../events/hooks';
 
 const Video = () => {
 
     let {videoId:paramVideoId} = useParams();
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const [loading,setLoading] = useState(true);
     const [data,setData] = useState(null);
     const [videoId,setVideoId] = useState(paramVideoId);
@@ -23,11 +25,14 @@ const Video = () => {
     const [isCommentPanelExpanded,setIsCommentPanelExpanded] = useState(false);
     const [isVideoPresentInPlaylist,setIsVideoPresentInPlaylist] = useState(null);
     const [isAddVideoToPlaylistModalOpened,setIsAddVideoToPlaylistModalOpened] = useState(false);
+    const [isCreatePlaylistModalOpened,setIsCreatePlaylistModalOpened] = useState(false);
+    const [isCreatePlaylistModalButtonLoading,setIsCreatePlaylistModalButtonLoading] = useState(false);
     const userId = useSelector(state=>state.user.user?._id);
 
     const {getVideoById} = videoAPI;
     const {toggleSubscription} = connectionAPI;
     const {toggleVideoLike} = likeAPI;
+    const {createPlaylist} = playlistAPI;
 
     // Function to calculate time difference
     function timeSince(date) 
@@ -125,7 +130,6 @@ const Video = () => {
             setLikeCount(prev=>isLiked?prev-1:prev+1);
             setIsLiked(prev=>!prev);
             const response = await toggleVideoLike(data?._id);
-            // console.log(response.data.data);  
             const { likesCount, isLiked:isVideoLiked } = response.data.data;
 
             //sync with backend response to maintain consistency
@@ -146,6 +150,29 @@ const Video = () => {
         }
     }
 
+    const createNewPlaylist = async (data) =>{
+      try
+      {
+        setIsCreatePlaylistModalButtonLoading(true);
+        const {name,description,isPrivate=true} = data;
+        const response = await createPlaylist({name,description,isPrivate,videoId});
+        // console.log(response.data.data);
+        setIsCreatePlaylistModalOpened(false);
+        setIsVideoPresentInPlaylist(true);
+
+        dispatch(setSuccessMessage({ content: 'Playlist created successfully!'}));
+      }
+      catch(err)
+      {
+        console.log(err);
+        dispatch(setFailureMessage({ content: 'Something went wrong while creating playlist'}));
+      }
+      finally
+      {
+        setIsCreatePlaylistModalButtonLoading(false);
+      }
+    }
+
     //sync videoId state with videoID param
     useEffect(()=>{
       setVideoId(paramVideoId);
@@ -156,61 +183,76 @@ const Video = () => {
       getVideoDetails();
     },[])
 
-    useUserEvents({
-      data:{
-        userId: (data && data.owner && data.owner._id)?data.owner._id:null
-      },
-      publicListeners:{
-        updateSubscriberCount:(payload)=>{
-          console.log("Subscriber Count: ",payload);
-          setVideoOwner(prev=>({...prev,subscribersCount:payload}))
-        },
-        updateAvatar:(payload)=>{
-          setVideoOwner(prev=>({...prev,avatar:payload}))
-        },
-        updateChannelName:(payload)=>{
-          setVideoOwner(prev=>({...prev,channelName:payload}))
-        }
-      },
-      privateListeners:{
-        updateIsSubscribed:(payload)=>{
-          if(userId==payload.id)
+    //sync events for video domain
+    useSyncEvents({
+      domain:'video',
+      id:videoId,
+      publicHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
           {
-            setIsSubscribed(payload.data);          
+            case 'viewcount':
+              setViewCount(value);
+              break;
+            
+            case 'likecount':
+              setLikeCount(value);
+              break;
+
+            case 'commentcount':
+              setCommentCount(value);
+              break;
+          }
+        },
+        onDelete:()=>{
+          navigate("/"); //navigate to home page
+        },
+      },
+      privateHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
+          {
+            case 'isliked':
+              setIsLiked(value);
+              break;
+            
+            case 'ispresentinplaylist':
+              setIsVideoPresentInPlaylist(value);
+              break;
           }
         }
       }
     });
 
-    useVideoEvents({
-      data:{
-        videoId:videoId
-      },
-      publicListeners:{
-        updateViewCount:(payload)=>{
-          setViewCount(payload);
-        },
-        updateVideoLikeCount:(payload)=>{
-          console.log("Video Like Count: ",payload);
-          setLikeCount(payload);
-        },
-        updateCommentCount:(payload)=>{
-          console.log("Comment Count: ",payload);
-          setCommentCount(payload);
+    //sync events for user domain
+    useSyncEvents({
+      domain:'user',
+      id:(data && data.owner && data.owner._id)?data.owner._id:null,
+      publicHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
+          {
+            case 'subscribercount':
+              setVideoOwner(prev=>({...prev,subscribersCount:value}));
+              break;
+            
+            case 'avatar':
+              setVideoOwner(prev=>({...prev,avatar:value}));
+              break;
+
+            case 'channelname':
+              setVideoOwner(prev=>({...prev,channelName:value}));
+              break;
+          }
         }
       },
-      privateListeners:{
-        updateIsVideoLiked:(payload)=>{
-          if(videoId === payload.id)
+      privateHandlers:{
+        onUpdate:({field,value})=>{
+          switch(field)
           {
-            setIsLiked(payload.data);
-          }
-        },
-        updateIsVideoPresentInPlaylist:(payload)=>{
-          if(videoId === payload.id)
-          {
-            setIsVideoPresentInPlaylist(payload.data);
-            console.log("video added: ",payload.data);
+            case 'issubscribed':
+              setIsSubscribed(value);
+              break;
           }
         }
       }
@@ -328,6 +370,16 @@ const Video = () => {
                           <AddVideoToPlaylistModal 
                             videoId={videoId}
                             setIsModalOpened = {setIsAddVideoToPlaylistModalOpened}
+                            setIsCreatePlaylistModalOpened={setIsCreatePlaylistModalOpened}
+                          />
+                        )
+                      }
+                      {
+                        isCreatePlaylistModalOpened && (
+                          <CreatePlaylistModal
+                          setIsModalOpened={setIsCreatePlaylistModalOpened}
+                          submitHandler={createNewPlaylist} 
+                          isSubmitButtonLoading={isCreatePlaylistModalButtonLoading}
                           />
                         )
                       }
@@ -352,6 +404,7 @@ const Video = () => {
                   {data.description}
                 </div>
 
+                {/* Comment Panel */}
                 <div className={`absolute top-0 left-0 w-full md:static bg-light-bg_dark dark:bg-dark-bg_light  h-full ${isCommentPanelExpanded?'flex-1':'hidden md:block'}`}>
 
                   <CommentPanel

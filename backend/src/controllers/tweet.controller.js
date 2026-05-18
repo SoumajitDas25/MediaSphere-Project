@@ -30,14 +30,35 @@ const createTweet = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while creating tweet document");
     }
 
-    //send updateTweetCount event
+    //emit public sync event for updating tweetCount
     const updatedTweetCount = await Tweet.countDocuments({
         owner: req.user._id
     });
-    eventBus.emit("user:updateTweetCount",{id:req.user._id,data:updatedTweetCount});
+    // eventBus.emit("user:updateTweetCount",{id:req.user._id,data:updatedTweetCount});
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"update",
+            field:"tweetCount",
+            value:updatedTweetCount
+        }
+    );
 
     //send reloadTweetList event
-    eventBus.emit("user:reloadTweetList",{id:req.user._id,data:'insertOne'});
+    // eventBus.emit("user:reloadTweetList",{id:req.user._id,data:'insertOne'});
+    //emit public sync event for reloading tweetList
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"tweetList",
+            value:"insertOne"
+        }
+    );
 
     //send the tweet document as response
     res.status(201)
@@ -47,7 +68,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
 })
 
-const getUserTweets = asyncHandler(async (req, res) => {
+const getAllUserTweets = asyncHandler(async (req, res) => {
 
     let data;
     //fetch page & limit from req query
@@ -179,7 +200,171 @@ const getUserTweets = asyncHandler(async (req, res) => {
                     likesCount: 1,
                     commentsCount: 1,
                     createdAt: 1,
-                    updatedAt: 1
+                    updatedAt: 1,
+                    isPublished:1
+                }
+            }
+        ]);
+        if(!paginatedTweets)
+        {
+            throw new ApiError(500,"Something went wrong while fetching tweet documents")
+        }
+
+        data={
+            totalTweets: totalTweets.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedTweets,
+        };
+    }
+
+    //send the paginatedTweets[] as response
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            data,
+            "Paginated User Tweets fetched Successfully"
+        )
+    );
+})
+
+const getPublishedUserTweets = asyncHandler(async (req, res) => {
+
+    let data;
+    //fetch page & limit from req query
+    const {page = 1, limit = 9} = req.query;
+
+    //get userId from req params
+    const {userId} = req.params;
+    if(!isValidObjectId(userId))
+    {
+        throw new ApiError(400,"Invalid User Id");
+    }
+
+    //check if the user exists or not
+    const user = await User.findById(userId);
+    if(!user)
+    {
+        throw new ApiError(400,"Incorrect User Id - User does not exist")
+    }
+
+    //get all tweets for the user
+    const totalTweets = await Tweet.find(
+        {
+            owner: userId,
+            isPublished:true
+        }
+    );
+    if(!totalTweets)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total Tweets");
+    }
+    if(totalTweets.length < 1)
+    {
+        data={
+            totalTweets:0,
+            paginatedContent:null,
+            totalPages:0
+        }
+    }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalTweets.length / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
+
+        //get paginated tweets for the user
+        const paginatedTweets = await Tweet.aggregate([
+            {
+                $match: { //get all tweet docs with owner as user
+                    owner: new mongoose.Types.ObjectId(String(userId)),
+                    isPublished:true
+                }
+            },
+            {   //No of docs to skip
+                $skip: (Number(page) - 1) * Number(limit)
+            },
+            {   //Max No of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $lookup: { //get the like doc of the tweet for the user if it exists
+                    from: "likes",
+                    let: { tweetId: "$_id" }, // Reference the current tweetId
+                    pipeline: [
+                        {
+                            $match:{
+                                $expr: {
+                                    $and: [
+                                        { 
+                                            $eq: ["$tweet", "$$tweetId"] 
+                                        },
+                                        { 
+                                            $eq: ["$likedBy", new mongoose.Types.ObjectId(String(req.user._id))] 
+                                        } 
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "isLikedData",
+                }
+            },
+            {
+                $addFields: { //if isLikedData[] contains data, then add isliked as true else false
+                    isLiked: {
+                        $cond: { 
+                            if: { 
+                                $gt: [
+                                    { $size: "$isLikedData" },
+                                    0
+                                ] 
+                            }, 
+                            then: true, 
+                            else: false 
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: { //add the owner info to each document
+                    owner: {
+                        _id: user._id,
+                        username: user.username,
+                        channelName: user.channelName,
+                        avatar: user.avatar
+                    }
+                }
+            },
+            {
+                $lookup: { //get all comment docs for each of the tweet doc
+                    from: "comments",
+                    localField: "_id",
+                    foreignField: "tweet",
+                    as: "commentsCount"
+                }
+            },
+            {
+                $addFields: { //calcuate & store the no of comment docs for each of the tweet doc
+                    commentsCount: {
+                        $size: "$commentsCount"
+                    }
+                }
+            },
+            {
+                $project: {
+                    content: 1,
+                    owner: 1,
+                    isLiked: 1,
+                    likesCount: 1,
+                    commentsCount: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    isPublished:1
                 }
             }
         ]);
@@ -368,10 +553,34 @@ const updateTweet = asyncHandler(async (req, res) => {
     }
 
     //send updateTweet event
-    eventBus.emit("tweet:updateTweet",{id:tweetId,data:updatedTweet.content});
+    // eventBus.emit("tweet:updateTweet",{id:tweetId,data:updatedTweet.content});
+    //emit public sync event for updating content
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:tweetId,
+            domain:"tweet",
+            action:"update",
+            field:"content",
+            value:updatedTweet.content
+        }
+    );
 
     //send reloadTweetList event
-    eventBus.emit("user:reloadTweetList",{id:req.user._id,data:'current'});
+    // eventBus.emit("user:reloadTweetList",{id:req.user._id,data:'current'});
+    //emit public sync event for reloading tweetList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"tweetList",
+            value:"current"
+        }
+    );
 
     //send the updated tweet doc as response
     res.status(200)
@@ -429,17 +638,50 @@ const deleteTweet = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while deleting comment reply documents")
     }
 
-    //send deleteTweet event
-    eventBus.emit("tweet:deleteTweet",{id:tweetId,data:true});
-
-    //send updateTweetCount event
+    //emit public sync event for updating tweetCount
     const updatedTweetCount = await Tweet.countDocuments({
         owner: req.user._id
     });
-    eventBus.emit("user:updateTweetCount",{id:req.user._id,data:updatedTweetCount});
+    // eventBus.emit("user:updateTweetCount",{id:req.user._id,data:updatedTweetCount});
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"update",
+            field:"tweetCount",
+            value:updatedTweetCount
+        }
+    );
 
     //send reloadTweetList event
-    eventBus.emit("user:reloadTweetList",{id:req.user._id,data:'deleteOne'});
+    // eventBus.emit("user:reloadTweetList",{id:req.user._id,data:'deleteOne'});
+    //emit public sync event for reloading tweetList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"tweetList",
+            value: "deleteOne"
+        }
+    );
+
+    //send deleteTweet event
+    // eventBus.emit("tweet:deleteTweet",{id:tweetId,data:true});
+    //emit public sync event for deleting tweet
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:tweetId,
+            domain:"tweet",
+            action:"delete"
+        }
+    );
 
     res.status(200)
     .json(
@@ -447,10 +689,67 @@ const deleteTweet = asyncHandler(async (req, res) => {
     );
 })
 
+const togglePublishStatus = asyncHandler(async (req, res) => {
+
+    //fetch tweetId from req params
+    const { tweetId } = req.params;
+    if(!isValidObjectId(tweetId))
+    {
+        throw new ApiError(400,"Invalid Tweet Id");
+    }
+
+    //find & update the tweet
+    const updatedTweet = await Tweet.findOneAndUpdate(
+        {
+            _id:tweetId,
+            owner:req.user._id
+        },
+        [
+            { $set: { isPublished: { $not: "$isPublished" } } }
+        ],
+        {new:true}
+    );
+
+    //send reloadTweetList event
+    // eventBus.broadcast("user:reloadTweetList",req.socketId,{id:req.user._id,data:'current'});
+    //emit public sync event for reloading tweetList
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"tweetList",
+            value:"current"
+        }
+    );
+
+    //emit public sync event for updating isPublished
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:tweetId,
+            domain:"tweet",
+            action:"update",
+            field:"isPublished",
+            value:updatedTweet.isPublished
+        }
+    );
+
+    res.status(200)
+    .json(
+        new ApiResponse(200,updatedTweet.isPublished,"Video publish status updated Successfully")
+    );
+})
+
 export {
     createTweet,
-    getUserTweets,
+    getAllUserTweets,
+    getPublishedUserTweets,
     getTweetById,
     updateTweet,
-    deleteTweet
+    deleteTweet,
+    togglePublishStatus
 }

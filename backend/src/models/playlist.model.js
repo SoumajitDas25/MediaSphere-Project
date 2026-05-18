@@ -9,10 +9,14 @@ const playlistSchema = new Schema({
         type: String,
         required: true
     },
-    visibility: {
-        type: String,
-        enum: ['public','private'],
-        default: 'public'
+    // visibility: {
+    //     type: String,
+    //     enum: ['public','private'],
+    //     default: 'public'
+    // },
+    isPrivate:{
+        type: Boolean,
+        default:false
     },
     videos: [
         {

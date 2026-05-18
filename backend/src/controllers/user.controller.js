@@ -95,6 +95,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     {
         throw new ApiError(500,"Something went wrong while registering user");
     }
+
     return res.status(201).json(
         new ApiResponse(200,createdUser,"User registered Successfully")
     )
@@ -185,6 +186,7 @@ const logoutUser = asyncHandler(async (req,res)=>{
 })
 
 const refreshAccessToken = asyncHandler(async (req,res)=>{
+
     //fetch refresh token from cookies or req body(in case of mob app) or header(in case of mob app) 
     let incomingRefreshToken;
     if((req.cookies && req.cookies.refreshToken) || 
@@ -355,7 +357,18 @@ const updateUserAvatar = asyncHandler(async (req,res)=>{
     isOldAvatarDeleted=false;
 
     //emit updateAvatar event
-    eventBus.emit("user:updateAvatar",{id:req.user._id,data:avatar.url});
+    // eventBus.emit("user:updateAvatar",{id:req.user._id,data:avatar.url});
+    //emit public sync event for updating avatar
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"update",
+            field:"avatar",
+            value:avatar.url
+        }
+    );
 
     //return the user doc as response
     return res.status(200)
@@ -418,7 +431,18 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
     isOldCoverImageDeleted="No previous Cover Image";
 
     //emit updateCoverImage event
-    eventBus.emit("user:updateCoverImage",{id:req.user._id,data:coverImage.url});
+    // eventBus.emit("user:updateCoverImage",{id:req.user._id,data:coverImage.url});
+    //emit public sync event for updating coverImage
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"update",
+            field:"coverImage",
+            value:coverImage.url
+        }
+    );
 
     //return the user doc as response
     return res.status(200)
@@ -664,6 +688,20 @@ const deleteWatchHistory = asyncHandler(async(req,res)=>{
         throw new ApiError(500,"Something went wrong while deleting watchHistory");
     }
 
+    //emit private sync event for reloading watchHistoryList
+    eventBus.broadcast(
+        "private:sync",
+        req.socketId,
+        {
+            userId:req.user._id,
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"watchHistoryList",
+            value:"reset"
+        }
+    );
+
     //send a success message as response
     res.status(200)
     .json(
@@ -685,24 +723,31 @@ const deleteVideoFromWatchHistory =  asyncHandler(async(req,res)=>{
     {
         throw new ApiError(400,"Video ID is missing");
     }
-
-    //get the user doc
-    const user = await User.findById(req.user?._id).select("watchHistory");
-    if(!user)
-    {
-        throw new ApiError(500,"Something went wrong while deleting video from watch history");
-    }
     
-    //exclude the videoId from watchHistory[] field of user doc
-    user.watchHistory = user.watchHistory.filter(id=>String(id)!==String(videoId));
-
-    //save the user doc
-    const updatedUser = await user.save();
+    //remove the videoId from watchHistory[] field of user doc
+    const updatedUser = await User.updateOne(
+        { _id: req.user?._id },
+        { $pull: { watchHistory: videoId } }
+    );
     if(!updatedUser)
     {
         throw new ApiError(500,"Something went wrong while deleting video from watch history");
     }
     // console.log(updatedUser);
+
+    //emit private sync event for reloading watchHistoryList
+    eventBus.broadcast(
+        "private:sync",
+        req.socketId,
+        {
+            userId:req.user._id,
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"watchHistoryList",
+            value:"deleteOne"
+        }
+    );
 
     //send a success message as response
     res.status(200)

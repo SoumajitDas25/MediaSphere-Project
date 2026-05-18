@@ -418,8 +418,17 @@ const addVideoComment = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while updating video document");
     }
 
-    //emit updateCommentCount event
-    eventBus.emit("video:updateCommentCount",{id:videoId,data:updatedVideo.commentsCount});
+    //emit public sync event for updating commentCount
+    eventBus.emit(
+        "public:sync",
+        {
+            id:videoId,
+            domain:"video",
+            action:"update",
+            field:"commentCount",
+            value:updatedVideo.commentsCount
+        }
+    );
 
     //send the comment doc as response
     res.status(201)
@@ -480,7 +489,19 @@ const addTweetComment = asyncHandler(async (req,res) =>{
     }
 
     //emit updateCommentCount event
-    eventBus.emit("tweet:updateCommentCount",{id:tweetId,data:updatedTweet.commentsCount});
+    // eventBus.emit("tweet:updateCommentCount",{id:tweetId,data:updatedTweet.commentsCount});
+
+    //emit public sync event for updating commentCount
+    eventBus.emit(
+        "public:sync",
+        {
+            id:tweetId,
+            domain:"tweet",
+            action:"update",
+            field:"commentCount",
+            value:updatedTweet.commentsCount
+        }
+    );
 
     //send the comment doc as response
     res.status(201)
@@ -520,13 +541,14 @@ const updateComment = asyncHandler(async (req, res) => {
         throw new ApiError(400,"Comment is not owned by the Current User");
     }
 
-    //update & save the comment doc
-    comment.content = content;
-    const updatedComment = await comment.save({validateBeforeSave: false});
-    if(!updatedComment)
-    {
-        throw new ApiError(500,"Something went wrong while updating Comment document");
-    }
+    //find and update the comment
+    const updatedComment = await Comment.findByIdAndUpdate(
+        commentId,
+        {
+            content:content
+        },
+        {new:true}
+    );
 
     //send the updated comment doc as response
     res.status(200)
@@ -569,10 +591,11 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while deleting comment document");
     }
 
+    let video,tweet;
     if(deletedComment.video && !deletedComment.tweet)
     {
         //find the video doc & decrement the comment count
-        const video = await Video.findByIdAndUpdate(
+        video = await Video.findByIdAndUpdate(
             deletedComment.video,
             {
                 $inc: {
@@ -591,7 +614,7 @@ const deleteComment = asyncHandler(async (req, res) => {
         if(deletedComment.tweet && !deletedComment.video)
         {
             //find the tweet doc & decrement the comment count
-            const tweet = await Tweet.findByIdAndUpdate(
+            tweet = await Tweet.findByIdAndUpdate(
                 deletedComment.tweet,
                 {
                     $inc: {
@@ -627,6 +650,38 @@ const deleteComment = asyncHandler(async (req, res) => {
     if(!commentReplies)
     {
         throw new ApiError(500,"Something went wrong while deleting comment reply documents")
+    }
+
+    if(deletedComment.video && !deletedComment.tweet)
+    {
+        //emit public sync event for updating commentCount for video
+        eventBus.emit(
+            "public:sync",
+            {
+                id:deletedComment.video,
+                domain:"video",
+                action:"update",
+                field:"commentCount",
+                value:video.commentsCount
+            }
+        );
+    }
+    else
+    {
+        if(deletedComment.tweet && !deletedComment.video)
+        {
+            //emit public sync event for updating commentCount for tweet
+            eventBus.emit(
+                "public:sync",
+                {
+                    id:deletedComment.tweet,
+                    domain:"tweet",
+                    action:"update",
+                    field:"commentCount",
+                    value:tweet.commentsCount
+                }
+            );
+        }
     }
 
     res.status(200)

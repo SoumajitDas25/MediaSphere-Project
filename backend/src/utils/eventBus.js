@@ -6,6 +6,9 @@ const createEventBus = () =>{
     emitter.hasListeners = (eventName) =>{
         return Boolean(emitter.listeners(eventName).length>0);
     }
+    emitter.broadcast = (eventName,socketId,payload) =>{
+        emitter.emit(eventName,{...payload,socketId,broadcast:true});
+    }
     return emitter;
 }
 

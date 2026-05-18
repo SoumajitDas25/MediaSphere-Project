@@ -10,6 +10,7 @@ import Playlist from "./Playlist.jsx";
 import WatchHistory from "./WatchHistory.jsx";
 import Connections from "./Connections.jsx";
 import MyPlaylist from "./MyPlaylist.jsx";
+import ManageContent from "./ManageContent.jsx";
 
 export {
     Home,
@@ -23,5 +24,6 @@ export {
     Playlist,
     WatchHistory,
     Connections,
-    MyPlaylist
+    MyPlaylist,
+    ManageContent
 }

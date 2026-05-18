@@ -4,11 +4,52 @@ const routePrefix = 'playlists';
 const ApiInstance = new Api(routePrefix);
 const {api} = ApiInstance;
 
-const getUserPlaylists = async (userId,page,limit,videoId=null)=>{
+const createPlaylist = async ({name,description,isPrivate=true,videoId}) => {
+    try
+    {
+        const response =  await api(
+            `/`,
+            {
+                name,
+                description,
+                isPrivate,
+                videoId
+            },
+            'POST'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const getAllUserPlaylists = async (userId,page,limit,videoId=null)=>{
     try
     {
         const response =  await api(
             `/user/${userId}`,
+            { //will be converted to query params
+                page:page, 
+                limit:limit,
+                videoId:videoId
+            },
+            'GET'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const getPublicUserPlaylists = async (userId,page,limit,videoId=null)=>{
+    try
+    {
+        const response =  await api(
+            `/public/user/${userId}`,
             { //will be converted to query params
                 page:page, 
                 limit:limit,
@@ -91,10 +132,71 @@ const removeVideoFromPlaylist = async (videoId,playlistId)=>{
     }
 }
 
+const updatePlaylist = async (playlistId,updatePlaylistData)=>{
+    try
+    {
+        const {name=null,description=null}=updatePlaylistData;
+
+        const data = {};
+        if(name)
+            data.name=name;
+        if(description)
+            data.description=description;
+
+        const response =  await api(
+            `/${playlistId}`,
+            data,
+            'PATCH'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const deletePlaylist = async (playlistId) =>{
+    try
+    {
+        const response =  await api(
+            `/${playlistId}`,
+            {},
+            'DELETE'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const togglePlaylistVisibilityStatus = async (playlistId)=>{
+    try
+    {
+        const response =  await api(
+            `/toggle/visibility/${playlistId}`,
+            {},
+            'PATCH'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 export default {
-    getUserPlaylists,
+    createPlaylist,
+    getAllUserPlaylists,
+    getPublicUserPlaylists,
     getPlaylistVideosById,
     getPlaylistInfoById,
     addVideoToPlaylist,
-    removeVideoFromPlaylist
+    removeVideoFromPlaylist,
+    updatePlaylist,
+    deletePlaylist,
+    togglePlaylistVisibilityStatus
 }

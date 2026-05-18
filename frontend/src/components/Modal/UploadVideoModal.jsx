@@ -9,7 +9,7 @@ const UploadVideoModal = ({setIsModalOpened}) => {
 
     const [videoSrc, setVideoSrc] = useState("");
     const videoRef = useRef(null); // Reference to the video element
-    const [video,setVideo]=useState(null);
+    // const [video,setVideo]=useState(null);
     const dispatch = useDispatch();
     const {
         register,
@@ -28,7 +28,7 @@ const UploadVideoModal = ({setIsModalOpened}) => {
         }
         setVideoSrc(newVideoURL); // Set video source
         }
-        setVideo(file);
+        // setVideo(file);
     };
 
     const submitHandler = async (data)=>{
@@ -57,11 +57,11 @@ const UploadVideoModal = ({setIsModalOpened}) => {
     }
 
     // Reload video when src changes
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.load(); // Forces the video to reload the new source
-    }
-  }, [videoSrc]);
+    useEffect(() => {
+      if (videoRef.current) {
+        videoRef.current.load(); // Forces the video to reload the new source
+      }
+    }, [videoSrc]);
 
   return (
         <Modal 
@@ -73,14 +73,14 @@ const UploadVideoModal = ({setIsModalOpened}) => {
           <form 
           onSubmit={handleSubmit(submitHandler)} 
           className="mx-auto flex w-full flex-col gap-y-4 p-4 max-h-[80vh] overflow-auto scrollbar-hide">
-            <div className={`flex flex-col justify-center items-center w-full border-2 ${videoSrc?'border-none':'border-dashed border-light-font_color_light dark:border-light-btn1_color'} py-12  rounded-lg`}>
+            <div className={`flex flex-col justify-center items-center w-full border-2 ${videoSrc?'border-none':'border-dashed border-light-font_color_light dark:border-light-btn1_color'} py-12`}>
                 {videoSrc && <h2 className="text-left">Video Preview</h2>}
                 <div className="flex justify-center text-[5rem] py-4">
                     {
                         videoSrc ? 
                         <video ref={videoRef}
                          controls
-                         className="w-full">
+                         className="w-full rounded-lg">
                             <source src={videoSrc} type="video/mp4" />
                             Your browser does not support the video tag.
                         </video>
@@ -180,9 +180,6 @@ const UploadVideoModal = ({setIsModalOpened}) => {
                 value={field.value}
                 setValue={field.onChange}
                 limit={500}
-                {...register("description",{
-                  required:"Description is required"
-                })}
                 />
               )}
               />

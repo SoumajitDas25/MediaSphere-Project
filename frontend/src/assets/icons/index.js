@@ -33,6 +33,8 @@ import { MdOutlineSpaceDashboard } from "react-icons/md";
 import { BsChatDots } from "react-icons/bs";
 import { MdOutlinePlaylistAdd } from "react-icons/md";
 import { MdOutlinePlaylistAddCheck } from "react-icons/md";
+import { RiListSettingsLine } from "react-icons/ri";
+import { HiMinus } from "react-icons/hi2";
 import NoUserIcon from "./user.png";
 
 export {
@@ -71,5 +73,7 @@ export {
     MdOutlineSpaceDashboard as DashboardIcon,
     MdOutlinePlaylistAdd as PlaylistAddIcon,
     MdOutlinePlaylistAddCheck as PlaylistAddedIcon,
+    RiListSettingsLine as ManageIcon,
+    HiMinus as MinusIcon,
     NoUserIcon
 }

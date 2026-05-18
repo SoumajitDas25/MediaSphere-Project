@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import {VideoCard,TweetCard,PlaylistCard,ChannelCard,CommentCard,ReplyCard,ContentLoader,Button} from '.';
+import {VideoCard,TweetCard,PlaylistCard,PlaylistCard2,ChannelCard,CommentCard,ReplyCard,ContentLoader,Button} from '.';
 // import { useSelector } from 'react-redux';
 
 const ListContainer = forwardRef(({ //to expose its instance to its parent using a ref
@@ -16,6 +16,7 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
     noDataDisplayMessage=null,
     renderCustomItem, //for rendering custom child
     onItemClick=null,
+    enabledItemOptions=false
 },ref) => {
 
     const [activeButtonIndex,setActiveButtonIndex] = useState(null);
@@ -32,36 +33,58 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
             
         case 'video':
             return (
-                <div key={item._id} className={`col-span-full ${viewType==='Grid'?'sm:col-span-10 sm:col-start-2 md:col-span-6 lg:col-span-4 aspect-1 flex justify-center':''} shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none`}>
+                <div key={item._id} className={`col-span-full ${viewType==='Grid'?'sm:col-span-10 sm:col-start-2 md:col-span-6 lg:col-span-4 aspect-1 flex justify-center':''} shadow-custom shadow-light-btn1_color dark:shadow-light-btn1_color rounded-lg`}>
                     <VideoCard  
                     data={item} 
                     viewType={viewType}
+                    listRef={ref}
+                    enableOptions={enabledItemOptions?true:false}
+                    enabledOptions={enabledItemOptions}
                     />
                 </div>
             );
 
         case 'tweet':
             return (
-                <div key={item._id} className='col-span-full flex justify-center shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none'>
+                <div key={item._id} className='col-span-full flex justify-center shadow-custom shadow-light-btn1_color dark:shadow-light-btn1_color rounded-lg'>
                     <TweetCard  
                     data={item}
+                    listRef={ref}
+                    enableOptions={enabledItemOptions?true:false}
+                    enabledOptions={enabledItemOptions}
                     />
                 </div>
             );
 
         case 'playlist':
             return (
-                <div key={item._id} className='col-span-full sm:col-span-10 sm:col-start-2 md:col-span-6 lg:col-span-4 aspect-w-5 aspect-h-[4.5] flex justify-center shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none'>
+                <div key={item._id} className='col-span-full sm:col-span-10 sm:col-start-2 md:col-span-6 lg:col-span-4 aspect-w-5 aspect-h-[4.5] flex justify-center shadow-custom shadow-light-btn1_color dark:shadow-light-btn1_color rounded-lg'>
                     <PlaylistCard  
                     data={item}
                     viewType={viewType}
+                    listRef={ref}
+                    enableOptions={enabledItemOptions?true:false}
+                    enabledOptions={enabledItemOptions}
+                    />
+                </div>
+            );
+
+        case 'playlist2':
+            return (
+                <div key={item._id} className={`col-span-full ${viewType==='Grid' && 'md:col-span-6 lg:col-span-4 md:flex md:justify-center'} shadow-custom shadow-light-btn1_color dark:shadow-light-btn1_color rounded-lg`}>
+                    <PlaylistCard2  
+                    data={item}
+                    viewType={viewType}
+                    listRef={ref}
+                    enableOptions={enabledItemOptions?true:false}
+                    enabledOptions={enabledItemOptions}
                     />
                 </div>
             );
 
         case 'channel':
             return (
-                <div key={item._id} className={`col-span-full ${viewType==='Grid'?'lg:col-span-4 xl:col-span-3 aspect-[4/5] flex justify-center':''} shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none`}>
+                <div key={item._id} className={`col-span-full ${viewType==='Grid'?'lg:col-span-4 xl:col-span-3 aspect-[4/5] flex justify-center':''} shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-light-btn1_color`}>
                     <ChannelCard 
                     data={item.channelDetails}
                     connectionType={type}
@@ -73,7 +96,7 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
 
         case 'subscriber':
             return (
-                <div key={item._id} className={`col-span-full ${viewType==='Grid'?'lg:col-span-4 xl:col-span-3 aspect-[4/5] flex justify-center':''} shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none`}>
+                <div key={item._id} className={`col-span-full ${viewType==='Grid'?'lg:col-span-4 xl:col-span-3 aspect-[4/5] flex justify-center':''} shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-light-btn1_color`}>
                     <ChannelCard 
                     data={item.channelDetails}
                     connectionType={type}
@@ -85,7 +108,7 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
 
         case 'subscription':
             return (
-                <div key={item._id} className={`col-span-full ${viewType==='Grid'?'lg:col-span-4 xl:col-span-3 aspect-[4/5] flex justify-center':''} shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none`}>
+                <div key={item._id} className={`col-span-full ${viewType==='Grid'?'lg:col-span-4 xl:col-span-3 aspect-[4/5] flex justify-center':''} shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-light-btn1_color`}>
                     <ChannelCard 
                     data={item.channelDetails}
                     connectionType={type}
@@ -97,7 +120,7 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
 
         case 'comment':
             return (
-                <div key={item._id} className='col-span-full flex justify-center shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none'>
+                <div key={item._id} className='col-span-full flex justify-center shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-light-btn1_color'>
                     <CommentCard  
                     data={item}
                     onClick={onItemClick}
@@ -108,7 +131,7 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
 
         case 'reply':
             return (
-                <div key={item._id} className='col-span-full flex justify-center shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none'>
+                <div key={item._id} className='col-span-full flex justify-center shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-light-btn1_color'>
                     <ReplyCard  
                     data={item}
                     listRef={ref}
@@ -192,21 +215,6 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
         // setActiveButtonIndex(pageIndex-1);
     };
 
-    // const reloadDataContentFromParent = ()=>{
-    //     if(reloadData)
-    //     {
-    //         if(isPaginationEnabled)
-    //             reloadData(loadData,dataRef.current,currentPageRef.current+1);
-    //         else
-    //             reloadData(loadData,dataRef.current);
-    //     }
-    //     else
-    //     { //if reloadData is not supplied by the parent
-    //         loadData(1); //it will reset the pagination states
-    //     }   
-    //     console.log('Content List Refreshed');
-    // }
-
     const reload = (reloadType) =>{
 
         let targetPage = 1;
@@ -254,7 +262,14 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
     }
 
     useImperativeHandle(ref,()=>({ //expose reload() to parent via ref
-        reload: reload
+        reload: reload,
+        getItem: (itemId)=>{
+            const item = data.find(listItem=>listItem._id===itemId)
+            return item?item:null;
+        },
+        setItem: (itemId,item)=>{
+            setData(state=>state.map(listItem=>listItem._id===itemId?item:listItem));
+        }
     }))
 
     useEffect(()=>{
@@ -328,27 +343,6 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
         currentPageRef.current = activeButtonIndex; //store the current state upon updation
     },[activeButtonIndex]);
 
-    // useEffect(()=>{
-    //     listenToUploadComplete((uploaderId,mediaType)=>{
-    //         // if(loggedUserId===uploaderId)
-    //         const lastPageIndex = totalPagesRef.current;
-    //         const currentData = dataRef.current;
-    //         if (lastPageIndex && mediaType.toLowerCase()===type.toLowerCase())
-    //         {
-    //             console.log(currentData,lastPageIndex);
-    //             if(currentData.length === dataLimitPerPage) 
-    //             {
-    //                 loadData(lastPageIndex+1) //navigate/load to next page to view the new content if current page is full
-    //                 setTotalPaginationPages(state=>state+1); //increment totalpages by 1
-    //             }
-    //             else
-    //             loadData(lastPageIndex); //refresh the current page to view the new content if current page is not full
-    //         // console.log('Content List Refreshed');
-    //         }
-    //     }); 
-    //     return ()=> stopListeningUploadComplete(); //clean up
-    // },[])
-
     return (
         <div className={`flex flex-col justify-between items-center ${minHeight?minHeight:'min-h-[30rem]'}`}>
             {
@@ -366,65 +360,6 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
                         data.map((item)=>(
                             renderCustomItem? renderCustomItem(item): renderDefaultItem(item)
                         ))
-                        // (type.toLowerCase()==='video' &&
-                        //     data.map((video)=>(
-                        //         <div key={video._id} className={`col-span-full ${viewType==='Grid'?'sm:col-span-10 sm:col-start-2 md:col-span-6 lg:col-span-4 aspect-1 flex justify-center':''} shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none`}>
-                        //             <VideoCard  
-                        //             data={video} 
-                        //             viewType={viewType}
-                        //             extraElements={extraChildElements}
-                        //             />
-                        //         </div>
-                        //     ))
-                        // ) 
-                        // ||
-                        // (type.toLowerCase()==='tweet' &&
-                        //     data.map((tweet)=>(
-                        //         <div key={tweet._id} className='col-span-full flex justify-center shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none'>
-                        //             <TweetCard  
-                        //             data={tweet}
-                        //             extraElements={extraChildElements}
-                        //             />
-                        //         </div>
-                        //     ))
-                        // ) 
-                        // ||
-                        // (type.toLowerCase()==='playlist' && 
-                        //     data.map((playlist)=>(
-                        //         <div key={playlist._id} className='col-span-full sm:col-span-10 sm:col-start-2 md:col-span-6 lg:col-span-4 aspect-w-5 aspect-h-[4.5] flex justify-center shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none'>
-                        //             <PlaylistCard  
-                        //             data={playlist}
-                        //             viewType={viewType}
-                        //             extraElements={extraChildElements}
-                        //             />
-                        //         </div>
-                        //     ))
-                        // )
-                        // ||
-                        // ((type.toLowerCase()==='channel' || type.toLowerCase()==='subscription'|| type.toLowerCase()==='subscriber') &&
-                        //     data.map((channel)=>(
-                        //         <div key={channel._id} className={`col-span-full ${viewType==='Grid'?'lg:col-span-4 xl:col-span-3 aspect-[4/5] flex justify-center':''} shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none`}>
-                        //             <ChannelCard 
-                        //             data={channel.channelDetails}
-                        //             connectionType={type}
-                        //             reloadData={reload}    
-                        //             viewType={viewType}
-                        //             extraElements={extraChildElements}
-                        //             />
-                        //         </div>
-                        //     ))
-                        // )
-                        // ||
-                        // (type.toLowerCase()==='comment' &&
-                        //     data.map((comment)=>(
-                        //         <div key={comment._id} className='col-span-full flex justify-center shadow-custom shadow-light-btn1_color rounded-lg dark:shadow-none'>
-                        //             <CommentCard  
-                        //             data={comment}
-                        //             extraElements={extraChildElements}
-                        //             />
-                        //         </div>
-                        //     ))
-                        // )
                     )
                     :
                     <div className='col-span-full flex-1 flex justify-center items-center h-[10rem]'>

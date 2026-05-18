@@ -10,7 +10,8 @@ import {
   Playlist,
   MyPlaylist,
   WatchHistory,
-  Connections
+  Connections,
+  ManageContent
 } from "../pages";
 import {
   HomeIcon,
@@ -23,6 +24,7 @@ import {
   TweetIcon,
   RegisterIcon,
   LoginIcon,
+  ManageIcon,
 } from "../assets/icons";
 import { AuthLayout } from "../components";
 import App from "../App";
@@ -202,6 +204,19 @@ const routeConfig = {
             title: "Tweet",
             auth: true,
             showInSidebar: false,
+        },
+        {
+            path: "/manage-content",
+            element: (
+                <AuthLayout authentication={true}>
+                    <ManageContent />
+                </AuthLayout>
+            ),
+            title: "Manage Content",
+            label: "Manage Content",
+            auth: true,
+            showInSidebar: true,
+            icon: <ManageIcon/>
         },
         {
             path: "/*",

@@ -57,8 +57,10 @@ const addVideoCommentReply = asyncHandler(async (req,res) => {
     }
 
     //push the replyId to the replies[] in the comment doc
-    comment.replies.push(reply._id);
-    const updatedComment = await comment.save({vaidateBeforeSave:false});
+    const updatedComment = await Comment.updateOne(
+        { _id: commentId },
+        { $push: { replies: reply._id } }
+    );
     if(!updatedComment)
     {
         throw new ApiError(500,"Something went wrong while updating comment document");
@@ -123,8 +125,10 @@ const addTweetCommentReply = asyncHandler(async (req,res) => {
     }
 
     //push the replyId to the replies[] in the comment doc
-    comment.replies.push(reply._id);
-    const updatedComment = await comment.save({vaidateBeforeSave:false});
+    const updatedComment = await Comment.updateOne(
+        { _id: commentId },
+        { $push: { replies: reply._id } }
+    );
     if(!updatedComment)
     {
         throw new ApiError(500,"Something went wrong while updating comment document");
@@ -387,13 +391,7 @@ const deleteReply = asyncHandler(async (req,res) =>{
         throw new ApiError(500,"Something went wrong while deleting Reply document");
     }
 
-    // //find the comment doc for the reply
-    // const comment = await Comment.findById(deletedReply.comment);
-
-    // //remove the replyId from replies[] in the comment doc
-    // comment.replies.splice(comment.replies.indexOf(replyId),1);
-
-    // const updatedComment = await comment.save({validateBeforeSave:false});
+    //remove the replyId from replies[] in the comment doc
     const updatedComment = await Comment.updateOne(
         { _id: deletedReply.comment },
         { $pull: { replies: replyId } }

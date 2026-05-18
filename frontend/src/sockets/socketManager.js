@@ -1,8 +1,6 @@
-// import socket from './socketInstance';
 import { io } from 'socket.io-client';
 import conf from '../conf/conf';
 import eventBus from '../events/eventBus';
-import { getEmitEventNames,getPublicListenEventNames,getPrivateListenEventNames } from '../events/eventNames';
 import { setIsSocketConnected } from '../slices/authSlice';
 import { store } from '../store/store';
 
@@ -41,32 +39,39 @@ const initSocketManager = (authToken=null) => {
     });
 
     //listen socket events from backend and broadcast domain/bus events via eventBus
-    const publicEventNames = getPublicListenEventNames();
-    const privateEventNames = getPrivateListenEventNames();
-    const listenEventNames = [...publicEventNames,...privateEventNames];
-    for (const name of listenEventNames) 
+    if (!socket.hasListeners("public:sync")) 
     {
-        if (!socket.hasListeners(name)) 
-        {
-            socket.on(name, (payload) => {
-                eventBus.emit(name, payload);
-            });
-        }
+        socket.on("public:sync", (payload) => {
+            eventBus.emit("public:sync", payload);
+        });
+    }
+    if (!socket.hasListeners("private:sync")) 
+    {
+        socket.on("private:sync", (payload) => {
+            eventBus.emit("private:sync", payload);
+        });
     }
 
     //listen domain/bus events via eventBus & emit socket events to backend
-    const emitEventNames = getEmitEventNames();
-    for (const name of emitEventNames) 
+    if (!eventBus.hasListeners("joinRoom")) 
     {
-        if (!eventBus.hasListeners(name)) 
-        {
-            eventBus.on(name, (payload) => {
-                if(socket && socket.connected)
-                {
-                    socket.emit(name, payload);
-                }
-            });
-        }
+        eventBus.on("joinRoom", ({domain='',id}) => {
+            if(socket && socket.connected)
+            {
+                if(domain && id)
+                socket.emit("joinRoom", {domain:domain.toLowerCase(),id});
+            }
+        });
+    }
+    if (!eventBus.hasListeners("leaveRoom")) 
+    {
+        eventBus.on("leaveRoom", ({domain,id}) => {
+            if(socket && socket.connected)
+            {
+                if(domain && id)
+                socket.emit("leaveRoom", {domain:domain.toLowerCase(),id});
+            }
+        });
     }
 
     socket.connect(); // connect once globally

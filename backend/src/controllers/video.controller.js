@@ -212,7 +212,7 @@ const getAllVideos = asyncHandler(async (req,res)=>{
     );
 });
 
-const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
+const getAllUserVideos = asyncHandler(async (req,res)=>{
 
     let data;
     //fetch page & limit from req query
@@ -292,13 +292,134 @@ const getPaginatedUserVideos = asyncHandler(async (req,res)=>{
                 $project: {
                     thumbnail: 1,
                     title: 1,
+                    description: 1,
                     duration: 1,
                     owner: 1,
                     viewsCount: 1,
                     // likesCount: 1,
                     // commentsCount: 1,
                     createdAt: 1,
-                    updatedAt: 1
+                    updatedAt: 1,
+                    isPublished:1
+                }
+            }
+        ]);
+
+        if(!paginatedVideos)
+        {
+            throw new ApiError(500,"Something went wrong while fetching User Video documents")
+        }
+
+        data={
+            totalVideos: totalVideos.length,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedVideos,
+        };
+    }
+    
+    //send the data as response
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            data,
+            "Paginated User Videos fetched Successfully"
+        )
+    );
+})
+
+const getPublishedUserVideos = asyncHandler(async (req,res)=>{
+
+    let data;
+    //fetch page & limit from req query
+    const {page = 1, limit = 9} = req.query;
+    // console.log(page,limit);
+
+    //get userId from req params
+    const {userId} = req.params;
+    if(!isValidObjectId(userId))
+    {
+        throw new ApiError(400,"Invalid User Id");
+    }
+
+    //check if the user exists or not
+    const user = await User.findById(userId);
+    if(!user)
+    {
+        throw new ApiError(400,"Incorrect User Id - User does not exist")
+    }
+
+    //get all vidoes for the user
+    const totalVideos = await Video.find(
+        {
+            owner: userId,
+            isPublished:true
+        }
+    );
+    if(!totalVideos)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total Videos");
+    }
+    if(totalVideos.length < 1)
+    {
+        data={
+            totalVideos:0,
+            paginatedContent:null,
+            totalPages:0
+        }
+    }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalVideos.length / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
+
+        const paginatedVideos = await Video.aggregate([
+            {
+                $match:{ //get the user videos
+                    owner: new mongoose.Types.ObjectId(String(userId)),
+                    isPublished:true
+                }
+            },
+            {         
+                $sort: { //sort the documents with the most recent to least recent
+                    createdAt: 1 
+                }
+            },
+            {
+                //No. of docs to skip
+                $skip: Number(page)<1 ? 0: ((Number(page) - 1) * Number(limit))
+            },
+            {   //No. of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $addFields: { //add the owner info to each document
+                    owner: {
+                        _id: user._id,
+                        username: user.username,
+                        channelName: user.channelName,
+                        avatar: user.avatar
+                    }
+                }
+            },
+            {
+                $project: {
+                    thumbnail: 1,
+                    title: 1,
+                    description: 1,
+                    duration: 1,
+                    owner: 1,
+                    viewsCount: 1,
+                    // likesCount: 1,
+                    // commentsCount: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    isPublished:1
                 }
             }
         ]);
@@ -356,14 +477,34 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Something went wrong while creating video doc entry in db");
     }
 
-    //send updateVideoCount event
+    //emit public sync event for updating videoCount
     const updatedVideoCount = await Video.countDocuments({
         owner: req.user._id
     });
-    eventBus.emit("user:updateVideoCount",{id:req.user._id,data:updatedVideoCount});
+    // eventBus.emit("user:updateVideoCount",{id:req.user._id,data:updatedVideoCount});
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"update",
+            field:"videoCount",
+            value:updatedVideoCount
+        }
+    );
 
-    //send reloadVideoList event
-    eventBus.emit("user:reloadVideoList",{id:req.user._id,data:'insertOne'});
+    //emit public sync event for reloading videoList
+    // eventBus.emit("user:reloadVideoList",{id:req.user._id,data:'insertOne'});
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"videoList",
+            value:"insertOne"
+        }
+    );
 
     //send the video obj as response
     res.status(201)
@@ -585,7 +726,18 @@ const getVideoById = asyncHandler(async (req, res) => {
     }
 
     //emit updateViewCount event
-    eventBus.emit("video:updateViewCount",{id:videoId,data:finalVideo[0].viewsCount});
+    // eventBus.emit("video:updateViewCount",{id:videoId,data:finalVideo[0].viewsCount});
+    //emit public sync event for updating viewCount
+    eventBus.emit(
+        "public:sync",
+        {
+            id:videoId,
+            domain:"video",
+            action:"update",
+            field:"viewCount",
+            value:finalVideo[0].viewsCount
+        }
+    );
     
     //send the video doc as response
     res.status(200)
@@ -598,83 +750,118 @@ const getVideoById = asyncHandler(async (req, res) => {
 const updateVideo = asyncHandler(async (req, res) => {
 
     //fetch videoId from req params
-    const { videoId } = req.params
-    if(!isValidObjectId(videoId))
-    {
-        throw new ApiError(400,"Invalid Video Id");
+    const { videoId } = req.params;
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid Video Id");
     }
 
-    //get video details(to be updated) from req body
-    let title,description;
-    if(req.body && (req.body.title && req.body.description))
-    {
-        title = req.body.title;
-        description = req.body.description;
-    }
-    if(!(title && description))
-    {
-        throw new ApiError(400,"Video title or description is missing");
-    }
-
-    //find the video doc by id
+    //check if the video exists or not
     const video = await Video.findById(videoId);
-    if(!video)
-    {
-        throw new ApiError(500,"Incorrect Video Id - Video does not exist");
+    if (!video) {
+        throw new ApiError(404, "Video does not exist");
     }
 
     //check if the video owner is current user or not
-    if(String(video.owner)!==String(req.user._id))
-    {
-        throw new ApiError(400,"Video is not owned by the current user");
+    if (String(video.owner) !== String(req.user._id)) {
+        throw new ApiError(403, "Video is not owned by the current user");
     }
 
-    //upload the new thumbnail file to cloudinary
-    let thumbnailLocalPath;
-    if(req.file && req.file.path)
-    thumbnailLocalPath = req.file.path;
-    if(!thumbnailLocalPath)
-    {
-        throw new ApiError(400,"Video thumbnail is missing");
-    }
-    const thumbnail = await fileUpload(thumbnailLocalPath,assetFolderName);       
-    if(!thumbnail) //upload unsuccessful 
-    {
-        throw new ApiError(500,"Video file upload failed");
+    //Destructure optional fields
+    const { title = null, description = null } = req.body;
+
+    const updatePayload = {};
+
+    //store title if present
+    if (title !== null && title.trim() !== video.title) {
+        updatePayload.title = title.trim();
     }
 
-    //store the old thumbnail url
-    const oldThumbnailUrl = video.thumbnail;
+    //store description if present
+    if (description !== null && description.trim() !== video.description) {
+        updatePayload.description = description.trim();
+    }
 
-    //update the video doc
-    video.title = title;
-    video.description = description;
-    video.thumbnail = thumbnail.secure_url;
+    //upload the new thumbnail file to cloudinary if present
+    let isOldThumbnailDeleted = false;
+    if (req.file && req.file.path) {
+        const uploaded = await fileUpload(req.file.path, assetFolderName);
+        if (!uploaded) {
+            throw new ApiError(500, "Thumbnail upload failed");
+        }
+        //store thumbnail url
+        updatePayload.thumbnail = uploaded.secure_url;
 
-    //save the video doc
-    const updatedVideo = await video.save({validateBeforeSave: false});
+        //delete the old thumbnail file from cloudinary
+        const delResponse = await deleteFile(video.thumbnail);
+        isOldThumbnailDeleted = !!delResponse;
+    }
 
-    //delete the old thumbnail file from cloudinary
-    const response = await deleteFile(oldThumbnailUrl);
-    let isOldThumbnailDeleted;
-    if(response)
-    isOldThumbnailDeleted=true;
-    else
-    isOldThumbnailDeleted=false;
+    //if nothing is present then give an error message
+    if (Object.keys(updatePayload).length === 0) 
+    {
+        throw new ApiError(400, "No changes provided for update");
+    }
 
-    //send the updated video doc as response
+    //update the video doc with the changed data
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        updatePayload,
+        { new: true }
+    );
+
+    //send reloadVideoList event
+    // eventBus.emit("user:reloadVideoList",{id:req.user._id,data:'current'});
+    //emit public sync event for reloading videoList
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"videoList",
+            value:"current"
+        }
+    );
+
+    if(title)
+    //emit public sync event for updating title
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:videoId,
+            domain:"video",
+            action:"update",
+            field:"title",
+            value: updatedVideo.title
+        }
+    );
+    if(description)
+    //emit public sync event for updating description
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:videoId,
+            domain:"video",
+            action:"update",
+            field:"description",
+            value: updatedVideo.description
+        }
+    );
+    
     res.status(200)
     .json(
         new ApiResponse(
-            200,
+            200, 
             {
-                data:updatedVideo,
-                isOldThumbnailDeleted
-            },
-            "Video details updated Successfully")
+            data: updatedVideo,
+            isOldThumbnailDeleted
+            }, 
+            "Video updated successfully"
+        )
     );
-
-})
+});
 
 const deleteVideo = asyncHandler(async (req, res) => {
     
@@ -759,16 +946,49 @@ const deleteVideo = asyncHandler(async (req, res) => {
             $pull: { watchHistory: videoId } 
         }
     );
-    if(!updatedPlaylists)
+    if(!updatedUserWatchHistory)
     {
         throw new ApiError(500,"Something went wrong while updating user watch history");
     }
     
-    //send the updateVideoCount event
+    //emit public sync event for updating videoCount
     const updatedVideoCount = await Video.countDocuments({
         owner: req.user._id
     });
-    eventBus.emit("user:updateVideoCount",{id:req.user._id,data:updatedVideoCount});
+    // eventBus.emit("user:updateVideoCount",{id:req.user._id,data:updatedVideoCount})
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"update",
+            field:"videoCount",
+            value:updatedVideoCount
+        }
+    );
+    
+    //emit public sync event for reloading videoList
+    // eventBus.emit("user:reloadVideoList",{id:req.user._id,data:'deleteOne'});
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"videoList",
+            value:"deleteOne"
+        }
+    );
+
+    //emit public sync event for deleting video
+    eventBus.emit(
+        "public:sync",
+        {
+            id:videoId,
+            domain:"video",
+            action:"delete"
+        }
+    );
 
     res.status(200)
     .json(
@@ -786,28 +1006,55 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         throw new ApiError(400,"Invalid Video Id");
     }
 
-    //find the video doc by id
-    const video = await Video.findByIdAndUpdate(videoId);
-    if(!video)
-    {
-        throw new ApiError(500,"Something went wrong while fetching video document");
-    }
+    //find & update the tweet
+    const updatedVideo = await Video.findOneAndUpdate(
+        {
+            _id:videoId,
+            owner:req.user._id
+        },
+        [
+            { $set: { isPublished: { $not: "$isPublished" } } }
+        ],
+        {new:true}
+    );
+    
+    //emit public sync event for reloading videoList
+    // eventBus.broadcast("user:reloadVideoList",req.socketId,{id:req.user._id,data:'current'});
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"reload",
+            source:"videoList",
+            value:"current"
+        }
+    );
 
-    //update the publish status of video
-    video.isPublished = !video.isPublished;
-
-    //save the video doc
-    video.save({validateBeforeSave: false});
+    //emit public sync event for updating isPublished
+    eventBus.broadcast(
+        "public:sync",
+        req.socketId,
+        {
+            id:videoId,
+            domain:"video",
+            action:"update",
+            field:"isPublished",
+            value:updatedVideo.isPublished
+        }
+    );
 
     res.status(200)
     .json(
-        new ApiResponse(200,video,"Video publish status updated Successfully")
+        new ApiResponse(200,updatedVideo.isPublished,"Video publish status updated Successfully")
     );
 })
 
 export {
     getAllVideos,
-    getPaginatedUserVideos,
+    getAllUserVideos,
+    getPublishedUserVideos,
     publishAVideo,
     generateVideoUploadCredentials,
     getVideoById,

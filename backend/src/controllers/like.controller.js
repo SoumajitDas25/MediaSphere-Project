@@ -9,68 +9,6 @@ import {Tweet} from "../models/tweet.model.js"
 import {Reply} from "../models/reply.model.js"
 import eventBus from "../utils/eventBus.js"
 
-// const toggleVideoLike = asyncHandler(async (req, res) => {
-
-//     //fetch videoId from req params
-//     const { videoId } = req.params
-//     if(!isValidObjectId(videoId))
-//     {
-//         throw new ApiError(400,"Invalid Video Id");
-//     }
-//     //check if the videoId is correct or not
-//     const video = await Video.findById(videoId);
-//     if(!video)
-//     {
-//         throw new ApiError(400,"Incorrect Video Id - Video does not exist");
-//     }
-
-//     //check if the video is already liked by the user or not
-//     const isVideoliked = await Like.findOne({
-//         $and: [{video:videoId},{likedBy:req.user._id}]
-//     })
-
-//     let like;
-//     if(isVideoliked) 
-//     {
-//         //if video is already liked, then remove the like doc & decrement the likes count in the video doc
-//         like = await Like.findByIdAndDelete(isVideoliked._id);
-//         if(!like)
-//         {
-//             throw new ApiError(500,"Something went wrong while deleting like document");
-//         }
-
-//         video.likesCount = video.likesCount - 1;
-//         // console.log("delete & decrement")
-//     }
-//     else
-//     {
-//         //if video is not liked, then create a like doc & increment the likes count in the video doc
-//         like = await Like.create({
-//             video:videoId,
-//             likedBy: req.user._id
-//         });
-//         if(!like)
-//         {
-//             throw new ApiError(500,"Something went wrong while creating like document");
-//         }
-
-//         video.likesCount = video.likesCount + 1;
-//         // console.log("insert & increment")
-//     }
-//     const updatedVideo = await video.save({validateBeforeSave: true});
-//     if(!updatedVideo)
-//     {
-//         throw new ApiError(500,"Something went wrong while updating Video document");
-//     }
-//     console.log(video);
-
-//     res.status(200)
-//     .json(
-//         new ApiResponse(200,video,"Video like toggled Successfully")
-//     );
-
-// })
-
 const toggleVideoLike = asyncHandler(async (req, res) => {
 
     //fetch videoId from req params
@@ -131,10 +69,37 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         }
 
         //emit updateVideoLikeCount event
-        eventBus.emit("video:updateVideoLikeCount",{id:videoId,data:video.likesCount},session);
+        // eventBus.emit("video:updateVideoLikeCount",{id:videoId,data:video.likesCount},session);
+        //emit public sync event for updating likeCount
+        eventBus.broadcast(
+            "public:sync",
+            req.socketId,
+            {
+                id:videoId,
+                domain:"video",
+                action:"update",
+                field:"likeCount",
+                value:video.likesCount
+            },
+            session
+        );
 
         //emit updateIsVideoLiked event
-        eventBus.emit("private:video:updateIsVideoLiked",{userId:req.user._id, id:videoId,data:!existingLike},session);
+        // eventBus.emit("private:video:updateIsVideoLiked",{userId:req.user._id, id:videoId,data:!existingLike},session);
+        //emit private sync event for updating isLiked
+        eventBus.broadcast(
+            "private:sync",
+            req.socketId,
+            {
+                userId:req.user._id,
+                id:videoId,
+                domain:"video",
+                action:"update",
+                field:"isLiked",
+                value:!existingLike
+            },
+            session
+        );
 
         //end the transaction via session
         await session.commitTransaction();
@@ -222,10 +187,37 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         }
 
         //emit updateTweetLikeCount event
-        eventBus.emit("tweet:updateTweetLikeCount",{id:tweetId,data:tweet.likesCount},session);
+        // eventBus.emit("tweet:updateTweetLikeCount",{id:tweetId,data:tweet.likesCount},session);
+        //emit public sync event for updating likeCount
+        eventBus.broadcast(
+            "public:sync",
+            req.socketId,
+            {
+                id:tweetId,
+                domain:"tweet",
+                action:"update",
+                field:"likeCount",
+                value:tweet.likesCount
+            },
+            session
+        );
 
         //emit updateIsTweetLiked event
-        eventBus.emit("private:tweet:updateIsTweetLiked",{userId:req.user._id, id:tweetId,data:!existingLike},session);
+        // eventBus.emit("private:tweet:updateIsTweetLiked",{userId:req.user._id, id:tweetId,data:!existingLike},session);
+        //emit private sync event for updating isLiked
+        eventBus.broadcast(
+            "private:sync",
+            req.socketId,
+            {
+                userId:req.user._id,
+                id:tweetId,
+                domain:"tweet",
+                action:"update",
+                field:"isLiked",
+                value:!existingLike
+            },
+            session
+        );
 
         //end the transaction via session
         await session.commitTransaction();
@@ -503,7 +495,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     //send all liked vidoes as response
     res.status(200)
     .json(
-        new ApiResponse(200,likedVideos,"All Liked Vidoes fetched Successfully")
+        new ApiResponse(200,likedVideos[0],"All Liked Vidoes fetched Successfully")
     );
 
 });

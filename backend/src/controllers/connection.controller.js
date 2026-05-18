@@ -118,11 +118,48 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     }
 
     //emit updateSubcriberCount event to channel owner room
-    eventBus.emit("user:updateSubscriberCount",{id:channelId,data:updatedOwnerSubscribers[0].subscriberCount});
+    // eventBus.emit("user:updateSubscriberCount",{id:channelId,data:updatedOwnerSubscribers[0].subscriberCount});
+    //emit public sync event for updating subscriberCount
+    eventBus.emit(
+        "public:sync",
+        {
+            id:channelId,
+            domain:"user",
+            action:"update",
+            field:"subscriberCount",
+            value:updatedOwnerSubscribers[0].subscriberCount
+        }
+    );
+
     //emit updateSubcriptionCount event to channel viewer room
-    eventBus.emit("user:updateSubscriptionCount",{id:req.user._id,data:updatedViewerSubscriptions[0].subscriptionCount});
+    // eventBus.emit("user:updateSubscriptionCount",{id:req.user._id,data:updatedViewerSubscriptions[0].subscriptionCount});
+    //emit public sync event for updating subscriptionCount
+    eventBus.emit(
+        "public:sync",
+        {
+            id:req.user._id,
+            domain:"user",
+            action:"update",
+            field:"subscriptionCount",
+            value:updatedViewerSubscriptions[0].subscriptionCount
+        }
+    );
+
     //emit updateIsSubscribed event to channel viewer private room
-    eventBus.emit("private:user:updateIsSubscribed",{userId:req.user._id,id:req.user._id,data:!isChannelSubscribed});
+    // eventBus.emit("private:user:updateIsSubscribed",{userId:req.user._id,id:req.user._id,data:!isChannelSubscribed});
+    //emit private sync event for updating isSubscribed
+    eventBus.broadcast(
+        "private:sync",
+        req.socketId,
+        {
+            userId:req.user._id,
+            id:channelId,
+            domain:"user",
+            action:"update",
+            field:"isSubscribed",
+            value:!isChannelSubscribed
+        }
+    );
 
     //send a success message as response
     res.status(200)

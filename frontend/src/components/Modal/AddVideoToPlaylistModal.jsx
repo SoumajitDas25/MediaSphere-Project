@@ -1,20 +1,22 @@
-import { Modal,Button,ListContainer,PlaylistCard2 } from ".";
-import {playlistAPI} from "../api"
+import { Modal,Button,ListContainer,PlaylistCard2 } from "..";
+import {PlusIcon} from "../../assets/icons";
+import {playlistAPI} from "../../api"
 import { useSelector } from "react-redux";
 
 const AddVideoToPlaylistModal = ({
   videoId = null,
-  setIsModalOpened = null
+  setIsModalOpened = null,
+  setIsCreatePlaylistModalOpened = null
 }) => {
 
   const userId = useSelector(state=>state.user.user?._id);
 
-  const {getUserPlaylists} = playlistAPI;
+  const {getAllUserPlaylists} = playlistAPI;
 
   const fetchUserPlaylists = async (page=1,limit=5) =>{
     try
     {
-      const response = await getUserPlaylists(userId,page,limit,videoId);
+      const response = await getAllUserPlaylists(userId,page,limit,videoId);
       console.log(response.data.data);
       return response.data.data;
     }
@@ -44,20 +46,39 @@ const AddVideoToPlaylistModal = ({
             type='Playlist'
             isPaginationEnabled={true}
             fetchPaginatedData={fetchUserPlaylists}
-            dataLimitPerPage={5}
             allowDelayLoad={true}
             delayLoadDurationInMs={700}
             viewType="Grid"
             renderCustomItem={(item)=>(
-                <div key={item._id} className={`col-span-full md:col-span-6 lg:col-span-4 md:flex md:justify-center`}>
-                    <PlaylistCard2 
-                    data={item}
-                    viewType="Grid"
-                    videoId={videoId} 
-                    />
+                <div key={item._id} className={`col-span-full md:col-span-6 lg:col-span-4 md:flex md:justify-center shadow-custom shadow-light-btn1_color rounded-lg`}>
+                  <PlaylistCard2 
+                  data={item}
+                  viewType="Grid"
+                  videoId={videoId} 
+                  enableOptions={true}
+                  enabledOptions={{
+                    videoAdditionOrDeletionOption:true
+                  }}
+                  />
                 </div>
               )}
             />
+          </div>
+
+          <div className="flex flex-row justify-center md:justify-end p-4">
+            <Button 
+            onClick={()=>{
+              setIsCreatePlaylistModalOpened(true);
+              setIsModalOpened(false);
+            }}
+            >
+              <span className="flex flex-row gap-1 justify-center items-center">
+                <span className='text-[1.5rem]'>
+                  <PlusIcon/>
+                </span>
+                Create New Playlist
+              </span>
+            </Button>
           </div>
 
         </div>  

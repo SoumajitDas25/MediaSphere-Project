@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import {
-    addVideoToPlaylist,
     createPlaylist,
-    deletePlaylist,
     getPlaylistInfoById,
     getPlaylistVideosById,
-    getPaginatedUserPlaylists,
+    getAllUserPlaylists,
+    getPublicUserPlaylists,
+    addVideoToPlaylist,
     removeVideoFromPlaylist,
     updatePlaylist,
+    deletePlaylist,
+    toggleVisibilityStatus
 } from "../controllers/playlist.controller.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 
@@ -28,6 +30,9 @@ router.route("/:playlistId/videos").get(getPlaylistVideosById);
 router.route("/add/:videoId/:playlistId").patch(addVideoToPlaylist);
 router.route("/remove/:videoId/:playlistId").patch(removeVideoFromPlaylist);
 
-router.route("/user/:userId").get(getPaginatedUserPlaylists);
+router.route("/user/:userId").get(getAllUserPlaylists);
+router.route("/public/user/:userId").get(getPublicUserPlaylists);
+
+router.route("/toggle/visibility/:playlistId").patch(toggleVisibilityStatus);
 
 export default router

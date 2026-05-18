@@ -4,11 +4,30 @@ const routePrefix = 'tweets';
 const ApiInstance = new Api(routePrefix);
 const {api} = ApiInstance;
 
-const getUserTweets = async (userId,page,limit)=>{
+const getAllUserTweets = async (userId,page,limit)=>{
     try
     {
         const response =  await api(
             `/user/${userId}`,
+            { //will be converted to query params
+                page:page,
+                limit:limit
+            },
+            'GET'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
+const getPublishedUserTweets = async (userId,page,limit)=>{
+    try
+    {
+        const response =  await api(
+            `/published/user/${userId}`,
             { //will be converted to query params
                 page:page,
                 limit:limit
@@ -88,11 +107,28 @@ const deleteTweet = async (tweetId)=>{
         throw error;
     }
 }
+const toggleTweetPublishStatus = async (tweetId)=>{
+    try
+    {
+        const response =  await api(
+            `/toggle/publish/${tweetId}`,
+            {},
+            'PATCH'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
 
 export default {
-    getUserTweets,
+    getAllUserTweets,
+    getPublishedUserTweets,
     createTweet,
     getTweetById,
     updateTweet,
-    deleteTweet
+    deleteTweet,
+    toggleTweetPublishStatus
 }

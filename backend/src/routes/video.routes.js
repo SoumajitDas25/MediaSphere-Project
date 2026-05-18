@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import {
     getAllVideos,
-    getPaginatedUserVideos,
+    getAllUserVideos,
+    getPublishedUserVideos,
     getVideoById,
     publishAVideo,
     generateVideoUploadCredentials,
@@ -39,7 +40,9 @@ router
     .delete(deleteVideo)
     .patch(upload.single("thumbnail"), updateVideo);
 
-router.route("/user/:userId").get(getPaginatedUserVideos);
+router.route("/user/:userId").get(getAllUserVideos);
+
+router.route("/published/user/:userId").get(getPublishedUserVideos);
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 
