@@ -174,7 +174,7 @@ const getCommentReplies = asyncHandler(async (req,res) =>{
     if(totalReplies.length < 1)
     {
         data={
-            totalReplies:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -307,7 +307,7 @@ const getCommentReplies = asyncHandler(async (req,res) =>{
             throw new ApiError(500,"Something went wrong while fetching Paginated Replies");
         }
         data={
-            totalReplies: totalReplies.length,
+            totalItems: totalReplies.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedReplies,

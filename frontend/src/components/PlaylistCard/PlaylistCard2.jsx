@@ -118,7 +118,7 @@ const PlaylistCard2 = ({
             const response = await updatePlaylist(_id,updateData);
             // console.log(response.data.data);
             setEnableEdit(false);
-            // listRef.current.reload('current');
+            listRef.current.reload('current');
         }
         catch(error)
         {
@@ -138,7 +138,7 @@ const PlaylistCard2 = ({
             const response = await deletePlaylist(_id);
             console.log(response.data.data);
             setEnableDelete(false);
-            // listRef.current.reload('deleteOne');
+            listRef.current.reload('deleteOne');
         }
         catch(error)
         {

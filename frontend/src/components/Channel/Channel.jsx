@@ -227,59 +227,7 @@ const Channel = () => {
         })();
 
     },[]);
-
-    // useUserEvents({
-    //     data:{
-    //         userId:(channelProfile && channelProfile._id)?channelProfile._id:null
-    //     },
-    //     publicListeners:{
-    //         updateAvatar:(payload)=>{
-    //             setAvatar(payload);
-    //         },
-    //         updateCoverImage:(payload)=>{
-    //             setCoverImage(payload);
-    //         },
-    //         updateSubscriberCount:(payload)=>{
-    //         //   console.log("Subscriber Count: ",payload);
-    //           setSubscriberCount(payload);
-    //         },
-    //         updateSubscriptionCount:(payload)=>{
-    //         //   console.log("Subscription Count: ",payload);
-    //           setSubscriptionCount(payload);
-    //         },
-    //         updateVideoCount:(payload)=>{
-    //             setVideosCount(payload);
-    //         },
-    //         reloadVideoList:(payload)=>{
-    //             if(activeContentRef.current.type.toLowerCase()==='video')
-    //             {
-    //                 listRef.current.reload(payload);
-    //             }
-    //         },
-    //         reloadTweetList:(payload)=>{
-    //             if(activeContentRef.current.type.toLowerCase()==='tweet')
-    //             {
-    //                 listRef.current.reload(payload);
-    //             }
-    //         },
-    //         reloadPlaylistList:(payload)=>{
-    //             if(activeContentRef.current.type.toLowerCase()==='playlist')
-    //             {
-    //                 listRef.current.reload(payload);      
-    //             }
-    //         }
-    //     },
-    //     privateListeners:{
-    //         updateIsSubscribed:(payload)=>{
-    //             if(userId===payload.id)
-    //             {
-    //                 setIsSubscribed(payload.data); 
-    //                 // console.log(payload.data);      
-    //             }
-    //         }
-    //     }
-    // });
-
+    
     //sync events for user domain
     useSyncEvents({
       domain:'user',

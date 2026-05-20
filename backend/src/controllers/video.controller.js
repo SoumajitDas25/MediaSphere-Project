@@ -121,7 +121,7 @@ const getAllVideos = asyncHandler(async (req,res)=>{
     if(totalVideos < 1)
     {
         data={
-            totalVideos:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -194,7 +194,7 @@ const getAllVideos = asyncHandler(async (req,res)=>{
         }
 
         data={
-            totalVideos: totalVideos,
+            totalItems: totalVideos,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedVideos,
@@ -246,7 +246,7 @@ const getAllUserVideos = asyncHandler(async (req,res)=>{
     if(totalVideos.length < 1)
     {
         data={
-            totalVideos:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -311,7 +311,7 @@ const getAllUserVideos = asyncHandler(async (req,res)=>{
         }
 
         data={
-            totalVideos: totalVideos.length,
+            totalItems: totalVideos.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedVideos,
@@ -364,7 +364,7 @@ const getPublishedUserVideos = asyncHandler(async (req,res)=>{
     if(totalVideos.length < 1)
     {
         data={
-            totalVideos:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -430,7 +430,7 @@ const getPublishedUserVideos = asyncHandler(async (req,res)=>{
         }
 
         data={
-            totalVideos: totalVideos.length,
+            totalItems: totalVideos.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedVideos,

@@ -13,6 +13,7 @@ const PlaylistCard = ({
         thumbnail="",
         name="",
         videosCount=0,
+        isPrivate=false,
         owner,
         createdAt="",
         updatedAt=""
@@ -60,6 +61,10 @@ const PlaylistCard = ({
         className="bg-light-bg_light dark:bg-dark-btn1_color text-light-font_color_dark dark:text-dark-font_color_light grid grid-flow-col grid-cols-5 grid-rows-5 rounded-lg overflow-hidden w-full" 
         onClick={()=>navigate(`/playlist/${_id}`)}
         >
+            {
+                isPrivate? <span className='absolute  bottom-2 left-4 md:top-4 md:bottom-auto z-20 bg-color-yellow text-light-font_color_dark text-[4vw] sm:text-[1rem] px-4 py-2 rounded-2xl font-semibold shadow-custom shadow-dark-btn1_color dark:shadow-light-btn1_color'>Private</span>
+                :''
+            }
 
             <div className="col-span-full row-span-3 relative overflow-hidden flex justify-center">
                 {/* Playlist Thumbnail */}

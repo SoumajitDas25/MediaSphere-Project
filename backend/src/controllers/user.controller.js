@@ -564,7 +564,7 @@ const getWatchHistory = asyncHandler(async (req,res)=>{
     if(totalWatchHistory.length < 1)
     {
         data={
-            totalWatchHistory:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -654,7 +654,7 @@ const getWatchHistory = asyncHandler(async (req,res)=>{
         }
 
         data={
-            totalWatchHistory: totalWatchHistory.length,
+            totalItems: totalWatchHistory.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:user[0].watchedVideos,

@@ -101,7 +101,7 @@ const getAllUserPlaylists = asyncHandler(async (req, res) => {
     if(totalPlaylists.length < 1)
     {
         data={
-            totalPlaylists:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -210,7 +210,7 @@ const getAllUserPlaylists = asyncHandler(async (req, res) => {
         }
 
         data={
-            totalPlaylists: totalPlaylists.length,
+            totalItems: totalPlaylists.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedPlaylists,
@@ -263,7 +263,7 @@ const getPublicUserPlaylists = asyncHandler(async (req, res) => {
     if(totalPlaylists.length < 1)
     {
         data={
-            totalPlaylists:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -373,7 +373,7 @@ const getPublicUserPlaylists = asyncHandler(async (req, res) => {
         }
 
         data={
-            totalPlaylists: totalPlaylists.length,
+            totalItems: totalPlaylists.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedPlaylists,
@@ -648,7 +648,7 @@ const getPlaylistVideosById = asyncHandler(async (req, res) => {
         new ApiResponse(
             200,
             {
-                totalPlaylistVideos: totalPlaylistVideos,
+                totalItems: totalPlaylistVideos,
                 currentPage: Number(page),
                 totalPages,
                 paginatedContent:paginatedPlaylistVideos[0].videos

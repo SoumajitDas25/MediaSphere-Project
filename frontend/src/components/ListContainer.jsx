@@ -1,6 +1,5 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import {VideoCard,TweetCard,PlaylistCard,PlaylistCard2,ChannelCard,CommentCard,ReplyCard,ContentLoader,Button} from '.';
-// import { useSelector } from 'react-redux';
 
 const ListContainer = forwardRef(({ //to expose its instance to its parent using a ref
     fetchData, //for non paginated data
@@ -23,10 +22,7 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
     const [loading,setLoading] = useState(false); 
     const [data,setData] = useState(null);
     const [totalPaginationPages,setTotalPaginationPages] = useState(null);
-    // const loggedUserId = useSelector(state=>state.user.user._id);
-    const totalPagesRef = useRef(null);
-    const currentPageRef = useRef(null);
-    const dataRef = useRef(null);
+    const [totalItems,setTotalItems] = useState(null);
 
     const renderDefaultItem = (item) => {
         switch (type.toLowerCase()) {
@@ -156,9 +152,11 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
                 //fetch paginated data
                 setActiveButtonIndex(pageIndex-1);
                 const response = await fetchPaginatedData(pageIndex,dataLimitPerPage);
+                // console.log(response);
                 if(response && response.paginatedContent && Array.isArray(response.paginatedContent) && response.paginatedContent.length !== 0) 
                 {
                     setData(response.paginatedContent);
+                    setTotalItems(response.totalItems);
                     if(isReload)
                     {
                         setTotalPaginationPages(response.totalPages);
@@ -167,6 +165,7 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
                 else
                 {
                     setData(null); //set data to null if there is no data at current index
+                    setTotalItems(0);
                     if(response) //in case when response came but there is no data at the current index, then re-set the totalpages
                     {
                         setTotalPaginationPages(response.totalPages);
@@ -181,10 +180,16 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
             {
                 //fetch non-paginated data
                 const response = await fetchData();
-                if(response &&  Array.isArray(response) && response.length !== 0) 
-                setData(response);
+                if(response &&  Array.isArray(response) && response.length !== 0)
+                {
+                    setData(response);
+                    // setTotalItems(response.totalItems);
+                } 
                 else
-                setData(null);
+                {
+                    setData(null);
+                    // setTotalItems(0);
+                }
             }
             if(allowDelayLoad)
             {   // delay loading for smooth load
@@ -215,50 +220,95 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
         // setActiveButtonIndex(pageIndex-1);
     };
 
-    const reload = (reloadType) =>{
+    // const reload = (reloadType) =>{
+
+    //     let targetPage = 1;
+    //     if(reloadType)
+    //     {
+    //         switch(reloadType.toLowerCase())
+    //         {
+    //             case 'current': //for reloading current page
+    //                 targetPage = activeButtonIndex + 1;
+    //                 break;
+
+    //             case 'reset': //for navigating to first page
+    //                 targetPage = 1;
+    //                 break;
+
+    //             case 'insertone': //for safe reloading by checking overflow condition
+    //                 if(dataRef.current)
+    //                 {
+    //                     if(dataRef.current.length<dataLimitPerPage)
+    //                         targetPage = activeButtonIndex + 1; //current page
+    //                     else
+    //                         targetPage = totalPaginationPages + 1; //next page
+    //                 }
+    //                 else
+    //                     targetPage=1;
+    //                 break;
+
+    //             case 'deleteone': //for safe reloading by checking underflow condition
+    //                 if(dataRef.current.length<=1)
+    //                 {
+    //                     if(activeButtonIndex+1===1)
+    //                         targetPage = 1;
+    //                     else
+    //                         targetPage = activeButtonIndex; //previous page
+    //                 }
+    //                 else
+    //                 {
+    //                     targetPage=activeButtonIndex+1; //current page
+    //                 }    
+    //                 break;
+    //         }
+    //     }
+    //     console.log(targetPage);
+    //     loadData(targetPage,true);
+    // }
+
+    const reload = (reloadType) => {
 
         let targetPage = 1;
+
         if(reloadType)
         {
             switch(reloadType.toLowerCase())
             {
-                case 'current': //for reloading current page
+                case 'current':
                     targetPage = activeButtonIndex + 1;
                     break;
 
-                case 'reset': //for navigating to first page
+                case 'reset':
                     targetPage = 1;
                     break;
 
-                case 'insertone': //for safe reloading by checking overflow condition
-                    if(dataRef.current)
-                    {
-                        if(dataRef.current.length<dataLimitPerPage)
-                            targetPage = activeButtonIndex + 1; //current page
-                        else
-                            targetPage = totalPaginationPages + 1; //next page
-                    }
-                    else
-                        targetPage=1;
+                case 'insertone':
+                    const totalItemsAfterInsert = totalItems + 1;
+                    targetPage = Math.ceil(
+                        totalItemsAfterInsert / dataLimitPerPage
+                    );
                     break;
 
-                case 'deleteone': //for safe reloading by checking underflow condition
-                    if(dataRef.current.length<=1)
-                    {
-                        if(activeButtonIndex+1===1)
-                            targetPage = 1;
-                        else
-                            targetPage = activeButtonIndex; //previous page
-                    }
-                    else
-                    {
-                        targetPage=activeButtonIndex+1; //current page
-                    }
-                        
+                case 'deleteone':
+                    const totalItemsAfterDelete = Math.max(
+                        totalItems - 1,
+                        0
+                    );
+                    const newTotalPages = Math.max(
+                        Math.ceil(
+                            totalItemsAfterDelete / dataLimitPerPage
+                        ),
+                        1
+                    );
+                    targetPage = Math.min(
+                        activeButtonIndex + 1,
+                        newTotalPages
+                    );
                     break;
             }
         }
-        loadData(targetPage,true);
+        // console.log(targetPage);
+        loadData(targetPage, true);
     }
 
     useImperativeHandle(ref,()=>({ //expose reload() to parent via ref
@@ -290,11 +340,13 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
                     if(response && response.paginatedContent && Array.isArray(response.paginatedContent) && response.paginatedContent.length !== 0)
                     {
                         setData(response.paginatedContent);
+                        setTotalItems(response.totalItems);
                         setTotalPaginationPages(response.totalPages);
                     }
                     else
                     {
                         setData(null);
+                        setTotalItems(0);
                         setTotalPaginationPages(0);
                     }
                 }
@@ -304,9 +356,15 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
                     const response = await fetchData();
                     // console.log(response);
                     if(response && Array.isArray(response) && response.length !== 0) 
-                    setData(response);
+                    {
+                        // setTotalItems(response.totalItems);
+                        setData(response);
+                    }
                     else
-                    setData(null);
+                    {
+                        setData(null);
+                        // setTotalItems(0);
+                    }
                 }
                 if(allowDelayLoad)
                 {   // delay loading for smooth load
@@ -329,19 +387,6 @@ const ListContainer = forwardRef(({ //to expose its instance to its parent using
         })();
 
     },[type]);
-
-    useEffect(()=>{
-        totalPagesRef.current = totalPaginationPages; //store the current state upon updation
-        // console.log(totalPagesRef.current);
-    },[totalPaginationPages]);
-
-    useEffect(()=>{
-        dataRef.current = data; //store the current state upon updation
-    },[data]);
-
-    useEffect(()=>{
-        currentPageRef.current = activeButtonIndex; //store the current state upon updation
-    },[activeButtonIndex]);
 
     return (
         <div className={`flex flex-col justify-between items-center ${minHeight?minHeight:'min-h-[30rem]'}`}>

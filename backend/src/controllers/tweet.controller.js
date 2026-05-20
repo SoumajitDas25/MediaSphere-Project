@@ -101,7 +101,7 @@ const getAllUserTweets = asyncHandler(async (req, res) => {
     if(totalTweets.length < 1)
     {
         data={
-            totalTweets:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -211,7 +211,7 @@ const getAllUserTweets = asyncHandler(async (req, res) => {
         }
 
         data={
-            totalTweets: totalTweets.length,
+            totalItems: totalTweets.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedTweets,
@@ -263,7 +263,7 @@ const getPublishedUserTweets = asyncHandler(async (req, res) => {
     if(totalTweets.length < 1)
     {
         data={
-            totalTweets:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -374,7 +374,7 @@ const getPublishedUserTweets = asyncHandler(async (req, res) => {
         }
 
         data={
-            totalTweets: totalTweets.length,
+            totalItems: totalTweets.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedTweets,

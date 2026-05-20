@@ -42,7 +42,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
     if(totalComments.length < 1)
     {
         data={
-            totalComments:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -169,7 +169,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         }
 
         data={
-            totalComments: totalComments.length,
+            totalItems: totalComments.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedComments,
@@ -221,7 +221,7 @@ const getTweetComments = asyncHandler(async (req, res) => {
     if(totalComments.length < 1)
     {
         data={
-            totalComments:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -348,7 +348,7 @@ const getTweetComments = asyncHandler(async (req, res) => {
         }
 
         data={
-            totalComments: totalComments.length,
+            totalItems: totalComments.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedComments,

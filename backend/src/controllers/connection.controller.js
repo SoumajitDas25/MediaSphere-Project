@@ -205,7 +205,7 @@ const getSubscribers = asyncHandler(async (req, res) => {
     if(totalSubscribers.length < 1)
     {
         data={
-            totalSubscribers:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -293,7 +293,7 @@ const getSubscribers = asyncHandler(async (req, res) => {
         }
 
         data={
-            totalSubscribers: totalSubscribers.length,
+            totalItems: totalSubscribers.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedSubscribers,
@@ -345,7 +345,7 @@ const getSubscriptions = asyncHandler(async (req, res) => {
     if(totalSubscriptions.length < 1)
     {
         data={
-            totalSubscriptions:0,
+            totalItems:0,
             paginatedContent:null,
             totalPages:0
         }
@@ -433,7 +433,7 @@ const getSubscriptions = asyncHandler(async (req, res) => {
         }
 
         data={
-            totalSubscriptions: totalSubscriptions.length,
+            totalItems: totalSubscriptions.length,
             currentPage: Number(page),
             totalPages,
             paginatedContent:paginatedSubscriptions,
