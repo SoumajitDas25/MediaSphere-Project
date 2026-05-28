@@ -152,7 +152,8 @@ const Tweet = () => {
         {
             setIsEditModalButtonLoading(true);
             const response = await updateTweet(tweetId,editRef.current.getValue());
-            console.log(response.data.data);
+            // console.log(response.data.data);
+            setTweetContent(response.data.data.content);
             editRef.current.reset();
             setEnableEdit(false);
         }

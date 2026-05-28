@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import {Button, Input, Modal, TextArea} from "../"
+import {Button, Input, Modal, TextArea, ImageCropper} from "../"
 import { Controller, useForm } from 'react-hook-form';
 import { UploadIcon } from '../../assets/icons';
+import {setIsCropperOpened,setCropProperties,setCropReset,setCropLoading} from '../../slices/cropSlice'
+import { useDispatch, useSelector } from 'react-redux';
 
 const EditVideoModal = ({
     setIsModalOpened,
@@ -15,9 +17,11 @@ const EditVideoModal = ({
     isSubmitButtonLoading = null
 }) => {
 
+    const dispatch = useDispatch();
     const {thumbnailUrl,title,description} = defaultData;
     const [thumbnailSrc, setThumbnailSrc] = useState(thumbnailUrl);
     const [enableSubmitButton,setEnableSubmitButton] = useState(false);
+    const {isCropperOpened,image:cropImage,aspectRatio:cropAspectRatio,cropSource,isCompleted:isCropCompleted,error:cropError} = useSelector(state=>state.crop);
     const {
         register,
         handleSubmit,
@@ -32,7 +36,7 @@ const EditVideoModal = ({
             thumbnail: null,
         }
     });
-     const watchedValues = watch();
+    const watchedValues = watch();
 
     useEffect(() => {
         const hasTitleChanged = watchedValues.title !== title;
@@ -46,16 +50,40 @@ const EditVideoModal = ({
 
     const handleFileChange = (event) => {
         const file = event.target.files[0]; // Get the selected file
-        if (file) {
-        const newThumbnailURL = URL.createObjectURL(file); // Create temporary URL
-        if (thumbnailSrc) 
+        if (file) 
         {
-          URL.revokeObjectURL(thumbnailSrc); // Revoke the previous URL to prevent memory leaks
+            updateImageViaCropperHandler(file,8/5,'thumbnail')
         }
-        setThumbnailSrc(newThumbnailURL); // Set thumbnail source
-        }
-        // setThumbnail(file);
     };
+
+    const updateImageViaCropperHandler = (file,aspectRatio,cropSource) => {
+        //create temp Url
+        const tempUrl = URL.createObjectURL(file);
+    
+        //dispatch crop actions
+        dispatch(setCropProperties({
+            image: tempUrl,
+            aspectRatio: aspectRatio,
+            cropSource: cropSource
+        })); 
+        dispatch(setIsCropperOpened(true));
+    }
+    
+    const onCropComplete = async (croppedImage)=>{
+    
+        //enable loading
+        dispatch(setCropLoading(true));
+    
+        //create temp Url
+        const tempUrl = URL.createObjectURL(croppedImage);
+    
+        // Set thumbnail source
+        setThumbnailSrc(tempUrl);
+        // console.log(croppedImage);
+    
+        //reset the crop state
+        dispatch(setCropReset());
+    }
 
     return (
         <Modal 
@@ -67,6 +95,16 @@ const EditVideoModal = ({
             <form 
             onSubmit={handleSubmit(submitHandler)} 
             className="mx-auto flex w-full flex-col gap-y-4 p-4 max-h-[80vh] overflow-auto scrollbar-hide">
+
+                {/* Image Cropper */}
+                {(isCropperOpened && cropImage && cropAspectRatio && cropSource)? 
+                    <ImageCropper
+                    file={cropImage}
+                    aspect={cropAspectRatio}
+                    cropSource = {cropSource}
+                    onComplete={onCropComplete}
+                    />:''
+                }
 
                 {/* thumbnail */}
                 <div className='flex flex-col gap-2'>

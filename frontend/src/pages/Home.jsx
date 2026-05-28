@@ -1,4 +1,4 @@
-import {Heading, ListContainer,ContentLoader} from '../components'
+import {ListContainer} from '../components'
 import {videoAPI} from "../api";
 
 const Home = () => {
@@ -69,12 +69,12 @@ const Home = () => {
     //     },
     // ]
 
-    const {getAllVideos} = videoAPI;
+    const {getPublishedVideos} = videoAPI;
 
     const fetchAllVideos = async (page=1,limit=9)=>{
       try
       {
-        const response = await getAllVideos(page,limit);
+        const response = await getPublishedVideos(page,limit);
         // console.log(response.data.data);
         return response.data.data;
       }
@@ -87,11 +87,10 @@ const Home = () => {
 
   return (
     <div>
-      {/* <Heading className='py-2'>Home</Heading>  */}
       <ListContainer 
       isPaginationEnabled={true} 
       fetchPaginatedData={fetchAllVideos}
-      dataLimitPerPage={15}
+      dataLimitPerPage={9}
       allowDelayLoad={true}
       delayLoadDurationInMs={700}
       />

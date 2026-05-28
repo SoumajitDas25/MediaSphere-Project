@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
     getAllVideos,
+    getPublishedVideos,
     getAllUserVideos,
     getPublishedUserVideos,
     getVideoById,
@@ -41,6 +42,8 @@ router
     .patch(upload.single("thumbnail"), updateVideo);
 
 router.route("/user/:userId").get(getAllUserVideos);
+
+router.route("/published/all").get(getPublishedVideos);
 
 router.route("/published/user/:userId").get(getPublishedUserVideos);
 

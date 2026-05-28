@@ -83,19 +83,19 @@ const routeConfig = {
             showInSidebar: true,
             icon: <RegisterIcon/>,
         },
-        {
-            path: "/dashboard",
-            // element: (
-            //     <AuthLayout authentication={true}>
-            //         <UserChannel/>
-            //     </AuthLayout>
-            // ),
-            title: "Dashboard",
-            label: "Dashbaord",
-            auth: true,
-            showInSidebar: true,
-            icon: <DashboardIcon />,
-        },
+        // {
+        //     path: "/dashboard",
+        //     // element: (
+        //     //     <AuthLayout authentication={true}>
+        //     //         <UserChannel/>
+        //     //     </AuthLayout>
+        //     // ),
+        //     title: "Dashboard",
+        //     label: "Dashbaord",
+        //     auth: true,
+        //     showInSidebar: true,
+        //     icon: <DashboardIcon />,
+        // },
         {
             path: "/connections",
             element: (

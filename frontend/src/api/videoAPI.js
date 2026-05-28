@@ -25,6 +25,25 @@ const getAllVideos = async (page,limit)=>{
     }
 }
 
+const getPublishedVideos = async (page,limit)=>{
+    try
+    {
+        const response =  await api(
+            `/published/all`,
+            { //will be converted to query params
+                page:page,
+                limit:limit
+            },
+            'GET'
+        );
+        return response;
+    }
+    catch(error)
+    {
+        throw error;
+    }
+}
+
 const getAllUserVideos = async (userId,page,limit)=>{
     try
     {
@@ -209,6 +228,7 @@ const toggleVideoPublishStatus = async (videoId)=>{
 
 export default {
     getAllVideos,
+    getPublishedVideos,
     getAllUserVideos,
     getPublishedUserVideos,
     publishVideo,

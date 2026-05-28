@@ -121,8 +121,9 @@ const VideoCard = ({
                 title:(data && data.title && data.title!==title) ? data.title:null,
                 description:(data && data.description && data.description!==description) ? data.description:null
             }
+            // console.log(updateData);
             const response = await updateVideo(_id,updateData);
-            console.log(response.data.data);
+            // console.log(response.data.data);
             setEnableEdit(false);
             listRef.current.reload('current');
             // console.log('reload list');
@@ -210,6 +211,7 @@ const VideoCard = ({
                     description:description
                 }}
                 submitHandler={updateHandler}
+                submitButtonText='Update'
                 isSubmitButtonLoading = {isEditModalButtonLoading}
                 />
             )

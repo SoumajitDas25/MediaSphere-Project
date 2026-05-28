@@ -212,6 +212,121 @@ const getAllVideos = asyncHandler(async (req,res)=>{
     );
 });
 
+const getPublishedVideos = asyncHandler(async (req,res)=>{
+
+    let data;
+    //fetch page & limit from req query
+    const {page = 1, limit = 9} = req.query;
+    // console.log(page,limit);
+
+
+    //get all vidoes
+    const totalVideos = await Video.find({
+        isPublished:true
+    }).countDocuments();
+    if(!totalVideos)
+    {
+        throw new ApiError(500,"Something went wrong while fetching Total Videos");
+    }
+    if(totalVideos < 1)
+    {
+        data={
+            totalItems:0,
+            paginatedContent:null,
+            totalPages:0
+        }
+    }
+    else
+    {
+        //check if page no. exceeds max page no.
+        let totalPages = Math.ceil(totalVideos / Number(limit));
+        if(totalPages < Number(page))
+        {
+            throw new ApiError(400,"Page Number exceeds Max Page Number");
+        }
+
+        const paginatedVideos = await Video.aggregate([
+            {
+                $match:{ //get all published videos
+                    isPublished:true
+                }
+            },
+            {         
+                $sort: { //sort the documents with the most recent to least recent
+                    createdAt: 1 
+                }
+            },
+            {
+                //No. of docs to skip
+                $skip: Number(page)<1 ? 0: ((Number(page) - 1) * Number(limit))
+            },
+            {   //No. of docs to be fetched
+                $limit: Number(limit)
+            },
+            {
+                $lookup: { //get the owner doc for each of the comment doc
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                        {
+                            $project: {
+                                _id: 1,
+                                username: 1,
+                                channelName: 1,
+                                avatar: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields: { //store the owner obj from owner[]
+                    owner: {
+                        $first: "$owner"
+                    }
+                }
+            },
+            {
+                $project: {
+                    thumbnail: 1,
+                    title: 1,
+                    duration: 1,
+                    owner: 1,
+                    viewsCount: 1,
+                    // likesCount: 1,
+                    // commentsCount: 1,
+                    createdAt: 1,
+                    updatedAt: 1
+                }
+            }
+        ]);
+
+        if(!paginatedVideos)
+        {
+            throw new ApiError(500,"Something went wrong while fetching Video documents")
+        }
+
+        data={
+            totalItems: totalVideos,
+            currentPage: Number(page),
+            totalPages,
+            paginatedContent:paginatedVideos,
+        };
+    }
+    
+    //send the data as response
+    res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            data,
+            "Paginated Videos fetched Successfully"
+        )
+    );
+});
+
 const getAllUserVideos = asyncHandler(async (req,res)=>{
 
     let data;
@@ -1053,6 +1168,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
 export {
     getAllVideos,
+    getPublishedVideos,
     getAllUserVideos,
     getPublishedUserVideos,
     publishAVideo,

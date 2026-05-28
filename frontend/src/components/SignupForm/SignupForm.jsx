@@ -1,11 +1,12 @@
-import React, { useEffect, useState,useRef } from 'react'
+import { useEffect, useState,useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import { ShowIcon,HideIcon,NoUserIcon } from "../../assets/icons";
 import { AppLogo } from '../../assets/images';
 import { Link, useNavigate } from "react-router-dom";
-import { Button, Input } from "../index";
+import { Button, Input,ImageCropper } from "../index";
 import { useForm,Controller } from 'react-hook-form';
 import { signupThunk } from '../../slices/userSlice';
+import {setIsCropperOpened,setCropProperties,setCropReset,setCropLoading} from '../../slices/cropSlice'
 
 const SignupForm = () => {
 
@@ -15,16 +16,8 @@ const SignupForm = () => {
     const [showPassword,setShowPassword] = useState(false);
     const [avatarPath,setAvatarPath] = useState(null);
     const error = useSelector(state=>state.user.error);
+    const {isCropperOpened,image:cropImage,aspectRatio:cropAspectRatio,cropSource,isCompleted:isCropCompleted,error:cropError} = useSelector(state=>state.crop);
     const {register,handleSubmit,formState:{errors},control} = useForm({mode:onchange});
-
-    // useEffect(()=>{
-
-    //     if(user)
-    //     { //if user is registered, then navigate to login
-    //         navigate('/login');
-    //     }
-
-    // },[user]);
 
     const submitHandler = async ({avatar,username,channelName,email,password}) => {
 
@@ -46,25 +39,40 @@ const SignupForm = () => {
         });
     }
 
-    const previewAvatar = (event,field) => {
-
-        console.log(event.target.files[0]);
-
-        const file = event.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            //set the filepath to the avatarPath
-            setAvatarPath(reader.result);
-          };
-          reader.readAsDataURL(file);
-        }
-        else
+    const handleFileChange = (event) => {
+        const file = event.target.files[0]; // Get the selected file
+        if (file) 
         {
-            setAvatarPath(null);
+            updateImageViaCropperHandler(file,1,'avatar')
         }
-                                 
-        field.onChange(event.target.files[0]); // Manually update the field's value
+    };
+
+    const updateImageViaCropperHandler = (file,aspectRatio,cropSource) => {
+        //create temp Url
+        const tempUrl = URL.createObjectURL(file);
+    
+        //dispatch crop actions
+        dispatch(setCropProperties({
+            image: tempUrl,
+            aspectRatio: aspectRatio,
+            cropSource: cropSource
+        })); 
+        dispatch(setIsCropperOpened(true));
+    }
+    
+    const onCropComplete = async (croppedImage)=>{
+    
+        //enable loading
+        dispatch(setCropLoading(true));
+    
+        //create temp Url
+        const tempUrl = URL.createObjectURL(croppedImage);
+    
+        // Set avatar path
+        setAvatarPath(tempUrl);
+    
+        //reset the crop state
+        dispatch(setCropReset());
     }
 
     return (
@@ -84,12 +92,22 @@ const SignupForm = () => {
             <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
                 <form className="space-y-6 mt-2 flex flex-col" onSubmit={handleSubmit(submitHandler)}>
 
+                    {/* Image Cropper */}
+                    {(isCropperOpened && cropImage && cropAspectRatio && cropSource)? 
+                        <ImageCropper
+                        file={cropImage}
+                        aspect={cropAspectRatio}
+                        cropSource = {cropSource}
+                        onComplete={onCropComplete}
+                        />:''
+                    }
+
                     {/* avatar */}
-                    <div className='relative flex flex-col items-center'>
-                     
+                    <div className='relative flex flex-col w-full items-center gap-2'>
+
                         <label 
                         htmlFor="avatar"
-                        className='block mb-1 text-[0.875rem] font-medium leading-6'
+                        className='text-[1rem] font-medium leading-6'
                         >
                             Avatar
                         </label>
@@ -97,7 +115,7 @@ const SignupForm = () => {
                         {/* avatar preview */}
                         <img 
                         src={avatarPath?avatarPath:NoUserIcon} 
-                        className="h-32 rounded-full overflow-hidden"
+                        className="rounded-full overflow-hidden aspect-1 max-h-[12rem] cursor-pointer"
                         onClick={()=>avatarFieldRef.current.click()}
                         alt="Avatar" />
 
@@ -112,15 +130,14 @@ const SignupForm = () => {
                             id='avatar'
                             ref={avatarFieldRef}
                             type='file'
-                            placeholder='Your Username'
                             accept="image/*"
                             className='hidden' 
-                            onChange = {(event)=>previewAvatar(event,field)}
+                            onChange = {handleFileChange}
                             />
                         )}
                         /> 
                         
-                        {/* username validation error message */}
+                        {/* avatar validation error message */}
                         {errors.avatar && (
                             <p className="text-red-500">
                                 {errors.avatar.message}

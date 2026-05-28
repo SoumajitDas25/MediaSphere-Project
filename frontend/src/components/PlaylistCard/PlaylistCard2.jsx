@@ -3,6 +3,7 @@ import { PlaylistIcon,PlusIcon,MinusIcon, DeleteIcon, EditIcon } from '../../ass
 import {Button, ConfirmModal, EditPlaylistModal, Switch} from "..";
 import {playlistAPI} from '../../api'
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
 const PlaylistCard2 = ({
     videoId=null,
@@ -19,6 +20,7 @@ const PlaylistCard2 = ({
     extraElements
 }) => {
 
+    const navigate = useNavigate();
     const {
         _id,
         thumbnail="",
@@ -197,7 +199,7 @@ const PlaylistCard2 = ({
                 )
             }
 
-            <div className='w-full relative transform transition-transform duration-300'>
+            <div className='w-full relative transform transition-transform duration-300' onClick={()=>navigate(`/playlist/${_id}`)}>
                 {/* <input 
                 type="checkbox" 
                 className='absolute top-1/2 -translate-y-1/2 right-4 md:top-4 md:left-4 md:translate-y-0 z-40 h-8 w-8 scale-200 accent-color-yellow'
